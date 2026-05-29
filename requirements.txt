@@ -1,3 +1,4 @@
 requests
 notebook
 kagglehub
+pandas
