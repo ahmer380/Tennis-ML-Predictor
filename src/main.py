@@ -1,10 +1,12 @@
 from src.step_1_load_dataset import download_dataset, load_dataset
+from src.step_2_preprocess_data import preprocess_matches, audit_dataset
 
 if __name__ == "__main__":
-    # download the dataset if not already downloaded
     download_dataset()
+    df = load_dataset()
+    audit_dataset(df)
 
-    # load the dataset into a pandas DataFrame
-    df = load_dataset(year_count=1)
+    print("\nPreprocessing dataset...\n")
 
-    print(df.head())
+    df_preprocessed = preprocess_matches(df)
+    audit_dataset(df_preprocessed)

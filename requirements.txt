@@ -2,3 +2,4 @@ requests
 notebook
 kagglehub
 pandas
+tabulate
