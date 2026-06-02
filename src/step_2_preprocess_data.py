@@ -55,11 +55,11 @@ CRITICAL_COLUMNS = [
 
 
 def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
-    """Copy and clean the matches DataFrame into a symmetric player1/player2 format.
+    """Copy and clean the matches DataFrame into a symmetric player_A/player_B format.
 
     - Drops rows missing critical identifiers, ranks, surface, or ages
     - Removes post-match leakage columns and noisy columns with many missing values
-    - Converts winner/loser into player1/player2 with a random 50/50 swap
+    - Converts winner/loser into player_A/player_B with a random 50/50 swap
     - Returns cleaned DataFrame ready for ML (no feature engineering performed)
     """
     dfc = df.copy()
@@ -67,9 +67,10 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
     dfc = dfc.dropna(subset=CRITICAL_COLUMNS)
 
     dfc = dfc[(dfc["winner_ht"] >= 100) & (dfc["loser_ht"] >= 100)]
+    dfc = dfc[(dfc["surface"].isin(["Hard", "Clay", "Grass"]))]
     dfc["tourney_date"] = pd.to_datetime(dfc["tourney_date"], format="%Y%m%d")
 
-    # Convert winner/loser format into player1/player2 with random swap to avoid bias
+    # Convert winner/loser format into player_A/player_B with random swap to avoid bias
     player_column_suffixes = [
         "id",
         "name",
@@ -81,16 +82,16 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
         "rank_points",
     ]
     for suffix in player_column_suffixes:
-        dfc[f"player1_{suffix}"] = dfc[f"winner_{suffix}"]
+        dfc[f"player_A_{suffix}"] = dfc[f"winner_{suffix}"]
     for suffix in player_column_suffixes:
-        dfc[f"player2_{suffix}"] = dfc[f"loser_{suffix}"]
+        dfc[f"player_B_{suffix}"] = dfc[f"loser_{suffix}"]
     swap_mask = np.random.rand(len(dfc)) < 0.5
-    p1_cols = [f"player1_{suffix}" for suffix in player_column_suffixes]
-    p2_cols = [f"player2_{suffix}" for suffix in player_column_suffixes]
+    p1_cols = [f"player_A_{suffix}" for suffix in player_column_suffixes]
+    p2_cols = [f"player_B_{suffix}" for suffix in player_column_suffixes]
     tmp = dfc.loc[swap_mask, p1_cols].copy()
     dfc.loc[swap_mask, p1_cols] = dfc.loc[swap_mask, p2_cols].values
     dfc.loc[swap_mask, p2_cols] = tmp.values
-    dfc["player1_won"] = (~swap_mask).astype(bool)
+    dfc["player_A_win"] = (~swap_mask).astype(int)
     dfc = dfc.drop(
         columns=[f"winner_{suffix}" for suffix in player_column_suffixes]
         + [f"loser_{suffix}" for suffix in player_column_suffixes]
@@ -104,8 +105,8 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
 def audit_dataset(df: pd.DataFrame) -> None:
     """Summarise the preprocessed dataset."""
     print(f"Shape of dataset: {df.shape}\n")
-    if "player1_won" in df.columns:
-        print(df["player1_won"].value_counts(normalize=True))
+    if "player_A_win" in df.columns:
+        print(df["player_A_win"].value_counts(normalize=True))
         print()
 
     # Audit each column
@@ -124,9 +125,10 @@ def audit_dataset(df: pd.DataFrame) -> None:
         summary_rows.append(
             {
                 "name": column_name,
+                "data_type": str(series.dtype),
                 "minimum": minimum,
                 "maximum": maximum,
-                "missing": missing_count,
+                "missing_rows": missing_count,
             }
         )
 

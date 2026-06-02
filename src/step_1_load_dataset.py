@@ -33,7 +33,6 @@ def load_dataset(year_count: int = 10) -> pd.DataFrame:
     most_recent_years = sorted(OUTPUT_DIR.glob("atp_matches_*.csv"), reverse=True)[
         :year_count
     ]
-    print(most_recent_years)
     dfs = [pd.read_csv(filepath) for filepath in most_recent_years]
 
     return pd.concat(dfs, ignore_index=True)
