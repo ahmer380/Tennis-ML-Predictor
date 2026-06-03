@@ -1,6 +1,11 @@
 from src.step_1_load_dataset import download_dataset, load_dataset
 from src.step_2_preprocess_data import preprocess_matches, audit_dataset
-from src.step_3_feature_engineering import engineer_features, audit_player_state
+from src.step_3_feature_engineering import (
+    engineer_features,
+    audit_player_states,
+    audit_player_h2h,
+    audit_player_tournament_run,
+)
 
 if __name__ == "__main__":
     print("Downloading dataset...\n")
@@ -9,14 +14,13 @@ if __name__ == "__main__":
 
     print("\nPreprocessing dataset...\n")
     df_preprocessed = preprocess_matches(df)
-    audit_dataset(df_preprocessed)
+    # audit_dataset(df_preprocessed)
 
     print("\nEngineering features...\n")
-    df_features, player_state = engineer_features(df_preprocessed)
-    audit_player_state(player_state)
+    df_features, player_states = engineer_features(df_preprocessed)
+    # audit_player_states(player_states)
+    # audit_player_h2h(df_features, "Novak Djokovic", "Carlos Alcaraz")
+    # audit_player_tournament_run(df_features, "Rafael Nadal", "US Open", 2019)
 
-    # print(df_features[(df_features["tourney_id"] == "2026-580") & (df_features["round"] == "F")].iloc[-1])
-
-    # TODO (step 3: Feature Engineering):
-    # Add minutes_in_current_torunament as feature
-    # Increase K-factor based on player inactivity, number of matches played, or tournament importance (e.g., Grand Slams)
+    # TODO (step 4)
+    print(df_features)

@@ -2,7 +2,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
-import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
@@ -15,15 +14,18 @@ class PlayerState:
     global_elo: float = BASE_ELO
     surface_elos: Dict[str, float] = field(default_factory=lambda: defaultdict(lambda: BASE_ELO))
     last_tournament_played_date: pd.Timestamp = None
-    last_10_win_record: Dict[int, List[bool]] = field(
-        default_factory=lambda: defaultdict(lambda: [False] * 10)
-    )  # key=opponent_id, value=win/loss record in last 10 matches
+    current_tournament_minutes_played: int = 0
+    h2h_records: Dict[int, List[bool]] = field(
+        default_factory=lambda: defaultdict(list)
+    )  # key=opponent_id, value=win/loss record
 
 
 class EloRatingEngine:
     K_FACTOR = 24.0  # standard K-factor for tennis Elo
     INACTIVITY_THRESHOLD_DAYS = 100  # days after which Elo starts decaying towards baseline
     INACTIVITY_DECAY_RATE = 0.002  # daily decay rate for inactivity beyond threshold
+
+    # TODO:Increase K-factor based on player inactivity, number of matches played, or tournament importance (e.g., Grand Slams)
 
     def calculate_expected_score(self, elo_a: float, elo_b: float) -> float:
         """Calculate expected score for player A against player B."""
@@ -116,6 +118,9 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         "age_A": [],
         "age_B": [],
         "age_diff": [],
+        "tournament_minutes_A": [],
+        "tournament_minutes_B": [],
+        "tournament_minutes_diff": [],
         "hard_surface": [],
         "clay_surface": [],
         "grass_surface": [],
@@ -134,7 +139,12 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         player_b_state = player_states[row["player_B_id"]]
 
         surface = str(row["surface"])
+
         tourney_date = pd.to_datetime(row["tourney_date"], format="%Y%m%d")
+        if tourney_date != player_a_state.last_tournament_played_date:
+            player_a_state.current_tournament_minutes_played = 0
+        if tourney_date != player_b_state.last_tournament_played_date:
+            player_b_state.current_tournament_minutes_played = 0
 
         # Populate feature lists (Elo values are pre-match)
         features["rank_A"].append(row["player_A_rank"])
@@ -149,8 +159,8 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         features["surface_elo_B"].append(player_b_state.surface_elos[surface])
         features["surface_elo_diff"].append(player_a_state.surface_elos[surface] - player_b_state.surface_elos[surface])
 
-        h2h_wins_a = player_a_state.last_10_win_record[row["player_B_id"]].count(True)
-        h2h_wins_b = player_b_state.last_10_win_record[row["player_A_id"]].count(True)
+        h2h_wins_a = player_a_state.h2h_records[row["player_B_id"]].count(True)
+        h2h_wins_b = player_b_state.h2h_records[row["player_A_id"]].count(True)
         features["h2h_wins_A"].append(h2h_wins_a)
         features["h2h_wins_B"].append(h2h_wins_b)
         features["h2h_diff"].append(h2h_wins_a - h2h_wins_b)
@@ -158,6 +168,12 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         features["age_A"].append(row["player_A_age"])
         features["age_B"].append(row["player_B_age"])
         features["age_diff"].append(row["player_A_age"] - row["player_B_age"])
+
+        features["tournament_minutes_A"].append(player_a_state.current_tournament_minutes_played)
+        features["tournament_minutes_B"].append(player_b_state.current_tournament_minutes_played)
+        features["tournament_minutes_diff"].append(
+            player_a_state.current_tournament_minutes_played - player_b_state.current_tournament_minutes_played
+        )
 
         features["hard_surface"].append(1 if surface == "Hard" else 0)
         features["clay_surface"].append(1 if surface == "Clay" else 0)
@@ -170,18 +186,19 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         # Post-match updates to player states (Elo updates happen after feature capture to prevent leakage)
         elo_engine.update_player_elos(player_a_state, player_b_state, tourney_date, surface, row["player_A_win"])
 
-        player_a_state.last_10_win_record[row["player_B_id"]].append(row["player_A_win"] == 1)
-        player_b_state.last_10_win_record[row["player_A_id"]].append(row["player_A_win"] == 0)
-        player_a_state.last_10_win_record[row["player_B_id"]].pop(0)
-        player_b_state.last_10_win_record[row["player_A_id"]].pop(0)
+        player_a_state.h2h_records[row["player_B_id"]].append(row["player_A_win"] == 1)
+        player_b_state.h2h_records[row["player_A_id"]].append(row["player_A_win"] == 0)
 
         player_a_state.last_tournament_played_date = tourney_date
         player_b_state.last_tournament_played_date = tourney_date
 
+        player_a_state.current_tournament_minutes_played += row["minutes"]
+        player_b_state.current_tournament_minutes_played += row["minutes"]
+
     return (dfc.assign(**features), player_states)
 
 
-def audit_player_state(player_states: Dict[int, PlayerState]) -> None:
+def audit_player_states(player_states: Dict[int, PlayerState]) -> None:
     """Print the top 50 players by global Elo, including ranks for all Elo types.
     Use website as point of comparison: https://www.tennisabstract.com/reports/atp_elo_ratings.html
     """
@@ -238,3 +255,56 @@ def audit_player_state(player_states: Dict[int, PlayerState]) -> None:
     ]
 
     print(tabulate(table_rows, headers=headers, tablefmt="github", floatfmt=".2f"))
+
+
+def audit_player_h2h(df_features: pd.DataFrame, player_a_name: str, player_b_name: str) -> None:
+    h2h_matches = df_features[
+        ((df_features["player_A_name"] == player_a_name) & (df_features["player_B_name"] == player_b_name))
+        | ((df_features["player_A_name"] == player_b_name) & (df_features["player_B_name"] == player_a_name))
+    ]
+
+    print(f"\n {player_a_name} vs {player_b_name} matches with engineered features:\n")
+    print(
+        h2h_matches[
+            [
+                "player_A_name",
+                "player_B_name",
+                "tourney_name",
+                "global_elo_A",
+                "global_elo_B",
+                "surface_elo_A",
+                "surface_elo_B",
+                "h2h_wins_A",
+                "h2h_wins_B",
+                "player_A_win",
+            ]
+        ]
+    )
+
+
+def audit_player_tournament_run(df_features: pd.DataFrame, player_name: str, tournament_name: str, year: int) -> None:
+    tournament_matches = df_features[
+        ((df_features["player_A_name"] == player_name) | (df_features["player_B_name"] == player_name))
+        & (df_features["tourney_name"] == tournament_name)
+        & (pd.to_datetime(df_features["tourney_date"], format="%Y%m%d").dt.year == year)
+    ]
+
+    print(f"\n {player_name} matches in {tournament_name} {year} with engineered features:\n")
+    print(
+        tournament_matches[
+            [
+                "player_A_name",
+                "player_B_name",
+                "tourney_name",
+                "global_elo_A",
+                "global_elo_B",
+                "surface_elo_A",
+                "surface_elo_B",
+                "h2h_wins_A",
+                "h2h_wins_B",
+                "tournament_minutes_A",
+                "tournament_minutes_B",
+                "player_A_win",
+            ]
+        ]
+    )

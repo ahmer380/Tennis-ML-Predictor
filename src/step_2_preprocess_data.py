@@ -24,7 +24,6 @@ LEAKAGE_COLUMNS = [
     "l_bpSaved",
     "l_bpFaced",
     "score",
-    "minutes",
 ]
 
 # Columns that are noisy and not worth keeping (many missing values, or not useful for prediction)
@@ -69,6 +68,7 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
     dfc = dfc[(dfc["winner_ht"] >= 100) & (dfc["loser_ht"] >= 100)]
     dfc = dfc[(dfc["surface"].isin(["Hard", "Clay", "Grass"]))]
     dfc["tourney_date"] = pd.to_datetime(dfc["tourney_date"], format="%Y%m%d")
+    dfc["minutes"] = dfc["minutes"].fillna(0) # Probably for walkover matches
 
     # Convert winner/loser format into player_A/player_B with random swap to avoid bias
     player_column_suffixes = [
