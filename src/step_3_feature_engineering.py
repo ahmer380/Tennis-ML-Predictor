@@ -1,7 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import timedelta
-from typing import Any, Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -16,6 +15,9 @@ class PlayerState:
     global_elo: float = BASE_ELO
     surface_elos: Dict[str, float] = field(default_factory=lambda: defaultdict(lambda: BASE_ELO))
     last_tournament_played_date: pd.Timestamp = None
+    last_10_win_record: Dict[int, List[bool]] = field(
+        default_factory=lambda: defaultdict(lambda: [False] * 10)
+    )  # key=opponent_id, value=win/loss record in last 10 matches
 
 
 class EloRatingEngine:
@@ -86,7 +88,7 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
     - rank_A, rank_B, rank_diff
     - global_elo_A, global_elo_B, global_elo_diff
     - surface_elo_A, surface_elo_B, surface_elo_diff
-    - recent_win_pct_A, recent_win_pct_B, recent_win_pct_diff (placeholder)
+    - h2h_wins_A, h2h_wins_B, h2h_total_matches, h2h_diff
     """
     dfc = df.copy()
 
@@ -147,10 +149,11 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         features["surface_elo_B"].append(player_b_state.surface_elos[surface])
         features["surface_elo_diff"].append(player_a_state.surface_elos[surface] - player_b_state.surface_elos[surface])
 
-        # TODO: Placeholder rolling features (implement later)
-        features["h2h_wins_A"].append(np.nan)
-        features["h2h_wins_B"].append(np.nan)
-        features["h2h_diff"].append(np.nan)
+        h2h_wins_a = player_a_state.last_10_win_record[row["player_B_id"]].count(True)
+        h2h_wins_b = player_b_state.last_10_win_record[row["player_A_id"]].count(True)
+        features["h2h_wins_A"].append(h2h_wins_a)
+        features["h2h_wins_B"].append(h2h_wins_b)
+        features["h2h_diff"].append(h2h_wins_a - h2h_wins_b)
 
         features["age_A"].append(row["player_A_age"])
         features["age_B"].append(row["player_B_age"])
@@ -166,6 +169,12 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
 
         # Post-match updates to player states (Elo updates happen after feature capture to prevent leakage)
         elo_engine.update_player_elos(player_a_state, player_b_state, tourney_date, surface, row["player_A_win"])
+
+        player_a_state.last_10_win_record[row["player_B_id"]].append(row["player_A_win"] == 1)
+        player_b_state.last_10_win_record[row["player_A_id"]].append(row["player_A_win"] == 0)
+        player_a_state.last_10_win_record[row["player_B_id"]].pop(0)
+        player_b_state.last_10_win_record[row["player_A_id"]].pop(0)
+
         player_a_state.last_tournament_played_date = tourney_date
         player_b_state.last_tournament_played_date = tourney_date
 
