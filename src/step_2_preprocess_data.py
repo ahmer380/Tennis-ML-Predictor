@@ -104,7 +104,7 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
 
 def audit_dataset(df: pd.DataFrame) -> None:
     """Summarise the preprocessed dataset."""
-    print(f"Shape of dataset: {df.shape}\n")
+    print(f"\nShape of dataset: {df.shape}\n")
     if "player_A_win" in df.columns:
         print(df["player_A_win"].value_counts(normalize=True))
         print()
