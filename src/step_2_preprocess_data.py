@@ -68,7 +68,7 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
     dfc = dfc[(dfc["winner_ht"] >= 100) & (dfc["loser_ht"] >= 100)]
     dfc = dfc[(dfc["surface"].isin(["Hard", "Clay", "Grass"]))]
     dfc["tourney_date"] = pd.to_datetime(dfc["tourney_date"], format="%Y%m%d")
-    dfc["minutes"] = dfc["minutes"].fillna(0) # Probably for walkover matches
+    dfc["minutes"] = dfc["minutes"].fillna(0)  # Probably for walkover matches
 
     # Convert winner/loser format into player_A/player_B with random swap to avoid bias
     player_column_suffixes = [
@@ -156,6 +156,4 @@ def audit_dataset(df: pd.DataFrame) -> None:
         grouped_rows.sort(key=lambda row: (-row["total_rows"], str(row["type"])))
 
         print(f"\n{title} summary:")
-        print(
-            tabulate(grouped_rows, headers="keys", tablefmt="github", showindex=False)
-        )
+        print(tabulate(grouped_rows, headers="keys", tablefmt="github", showindex=False))
