@@ -142,6 +142,9 @@ def audit_dataset(df: pd.DataFrame) -> None:
         ("surface", "Surface"),
         ("tourney_level", "Tourney level"),
     ):
+        if group_column not in df.columns:
+            continue
+
         grouped_rows = []
 
         for value, group_df in df.groupby(group_column, dropna=False):
