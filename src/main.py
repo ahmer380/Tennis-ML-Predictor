@@ -25,10 +25,10 @@ if __name__ == "__main__":
     # audit_player_tournament_run(df_features, "Rafael Nadal", "US Open", 2019)
 
     print("\nSplitting dataset...\n")
-    train_df, validation_df, test_df = split_dataset(df_features)
-    # audit_dataset(train_df)
-    # audit_dataset(validation_df)
-    # audit_dataset(test_df)
+    X_train, y_train, X_validation, y_validation, X_test, y_test = split_dataset(df_features)
+    # audit_dataset(X_train.assign(player_A_win=y_train))
+    # audit_dataset(X_validation.assign(player_A_win=y_validation))
+    # audit_dataset(X_test.assign(player_A_win=y_test))
 
     # TODO: Step 5: Train and evaluate machine learning models
     # 5.a Baseline model (choosing higher elo)

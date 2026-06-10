@@ -5,7 +5,7 @@ import pandas as pd
 
 def split_dataset(
     df_features: pd.DataFrame, train_size: float = 0.7, validation_size: float = 0.15, test_size: float = 0.15
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Split the dataset into training, validation, and testing sets, preserving chronological order.
     """
@@ -44,7 +44,15 @@ def split_dataset(
     validation_end = train_end + int(len(dfc) * validation_size)
 
     train_df = dfc.iloc[:train_end]
-    validation_df = dfc.iloc[train_end:validation_end]
-    test_df = dfc.iloc[validation_end:]
+    X_train = train_df.drop(columns=["player_A_win"])
+    y_train = train_df["player_A_win"]
 
-    return train_df, validation_df, test_df
+    validation_df = dfc.iloc[train_end:validation_end]
+    X_validation = validation_df.drop(columns=["player_A_win"])
+    y_validation = validation_df["player_A_win"]
+
+    test_df = dfc.iloc[validation_end:]
+    X_test = test_df.drop(columns=["player_A_win"])
+    y_test = test_df["player_A_win"]
+
+    return X_train, y_train, X_validation, y_validation, X_test, y_test
