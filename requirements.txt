@@ -3,3 +3,4 @@ notebook
 kagglehub
 pandas
 tabulate
+torch

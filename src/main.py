@@ -7,6 +7,7 @@ from src.step_3_feature_engineering import (
     audit_player_tournament_run,
 )
 from src.step_4_split_dataset import split_dataset
+from src.models.neural_network import learn
 
 if __name__ == "__main__":
     print("Downloading dataset...\n")
@@ -29,6 +30,10 @@ if __name__ == "__main__":
     # audit_dataset(X_train.assign(player_A_win=y_train))
     # audit_dataset(X_validation.assign(player_A_win=y_validation))
     # audit_dataset(X_test.assign(player_A_win=y_test))
+
+    print("\nTraining neural network...\n")
+    model = learn(X_train, y_train)
+    print("Finished training.")
 
     # TODO: Step 5: Train and evaluate machine learning models
     # 5.a Baseline model (choosing higher elo)
