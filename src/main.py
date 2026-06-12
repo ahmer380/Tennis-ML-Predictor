@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
     print("\nTraining neural network...\n")
-    model = learn(X_train, y_train)
+    model = learn(X_train, y_train, X_validation, y_validation)
     print("Finished training.")
 
     # TODO: Step 5: Train and evaluate machine learning models
