@@ -1,3 +1,6 @@
+from src.models.baseline import EloBaselineModel
+from src.models.neural_network import TennisPredictorMLP
+
 from src.step_1_load_dataset import download_dataset, load_dataset
 from src.step_2_preprocess_data import preprocess_matches, audit_dataset
 from src.step_3_feature_engineering import (
@@ -7,7 +10,7 @@ from src.step_3_feature_engineering import (
     audit_player_tournament_run,
 )
 from src.step_4_split_dataset import split_dataset
-from src.models.neural_network import learn
+from src.step_5_evaluate_model import evaluate_model
 
 if __name__ == "__main__":
     print("Downloading dataset...\n")
@@ -32,8 +35,12 @@ if __name__ == "__main__":
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
     print("\nTraining neural network...\n")
-    model = learn(X_train, y_train, X_validation, y_validation)
+    model = EloBaselineModel()
+    model.learn(X_train, y_train, X_validation, y_validation)
     print("Finished training.")
+
+    print("\nEvaluating model...\n")
+    evaluate_model(model, X_test, y_test)
 
     # TODO: Step 5: Train and evaluate machine learning models
     # 5.a Baseline model (choosing higher elo)
