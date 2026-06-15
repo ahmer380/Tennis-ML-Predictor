@@ -57,6 +57,10 @@ class TennisPredictorMLP(TennisPredictorModel):
         X_validation: pd.DataFrame,
         y_validation: pd.Series,
     ) -> None:
+        assert (
+            not self._is_fitted
+        ), f"{self.instance_name} has already been trained. Create a new instance to train again."
+
         # Convert training and validation data to normalised PyTorch tensors and create DataLoaders
         X_tensor = torch.tensor(self._scaler.fit_transform(X_train), dtype=torch.float32)
         y_tensor = torch.tensor(y_train.to_numpy(dtype="float32"), dtype=torch.float32)
@@ -155,6 +159,5 @@ class TennisPredictorMLP(TennisPredictorModel):
         model_instance._network.load_state_dict(checkpoint["model_state_dict"])
         model_instance._scaler = torch.load(model_instance.instance_dir / "scaler.pth", weights_only=False)
         model_instance._is_fitted = True
-        model_instance._network.eval()
 
         return model_instance
