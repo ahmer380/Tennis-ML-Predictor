@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Self
 
 import numpy as np
 import pandas as pd
@@ -7,27 +7,32 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler
 
-from src.models.base import TennisPredictorModel
+from src.models.model import TennisPredictorModel
 
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-4
 EPOCHS = 10
-HIDDEN_DIMS = (64, 32)
-DROPOUT = 0.2
 
 
 class _MLPNetwork(nn.Module):
-    def __init__(self, input_dim: int) -> None:
+    def __init__(self, input_dim: int, hidden_dims: tuple[int], dropout: float) -> None:
         super().__init__()
-        self.network = nn.Sequential(
-            nn.Linear(input_dim, HIDDEN_DIMS[0]),
-            nn.ReLU(),
-            nn.Dropout(DROPOUT),
-            nn.Linear(HIDDEN_DIMS[0], HIDDEN_DIMS[1]),
-            nn.ReLU(),
-            nn.Dropout(DROPOUT),
-            nn.Linear(HIDDEN_DIMS[1], 1),
-        )
+
+        layers = []
+        previous_dim = input_dim
+
+        for hidden_dim in hidden_dims:
+            layers.append(nn.Linear(previous_dim, hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
+            previous_dim = hidden_dim
+
+        layers.append(nn.Linear(previous_dim, 1))  # Output layer for binary classification
+
+        self.network = nn.Sequential(*layers)
+        self.input_dim = input_dim
+        self.hidden_dims = hidden_dims
+        self.dropout = dropout
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x).squeeze(-1)
@@ -36,10 +41,10 @@ class _MLPNetwork(nn.Module):
 class TennisPredictorMLP(TennisPredictorModel):
     """Predict Player A win probabilities using a Multi-Layer Perceptron (MLP) neural network."""
 
-    MODEL_NAME = "TennisPredictorMLP"
+    MODEL_NAME = "tennis_predictor_mlp"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, version: int = None) -> None:
+        super().__init__(parametric=True, version=version)
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._scaler = StandardScaler()
         self._network: Optional[_MLPNetwork] = None
@@ -62,7 +67,7 @@ class TennisPredictorMLP(TennisPredictorModel):
         y_validation_tensor = torch.tensor(y_validation.to_numpy(dtype="float32"), dtype=torch.float32).to(self._device)
 
         # Configure neural network, loss function, and optimizer
-        self._network = _MLPNetwork(input_dim=X_train.shape[1]).to(self._device)
+        self._network = _MLPNetwork(input_dim=X_train.shape[1], hidden_dims=(64, 32), dropout=0.2).to(self._device)
         criterion = nn.BCEWithLogitsLoss()
         optimizer = torch.optim.Adam(self._network.parameters(), lr=LEARNING_RATE)
 
@@ -124,3 +129,32 @@ class TennisPredictorMLP(TennisPredictorModel):
             probabilities = torch.sigmoid(logits).cpu().numpy()
 
         return np.asarray(probabilities, dtype=float)
+
+    def save(self) -> None:
+        if not self._is_fitted or self._network is None:
+            raise RuntimeError("TennisPredictorMLP must be trained before calling save().")
+
+        checkpoint = {
+            "model_state_dict": self._network.state_dict(),
+            "input_dim": self._network.input_dim,
+            "hidden_dims": self._network.hidden_dims,
+            "dropout": self._network.dropout,
+        }
+        torch.save(checkpoint, self.instance_dir / "model.pth")
+        torch.save(self._scaler, self.instance_dir / "scaler.pth")
+
+    @classmethod
+    def load(cls, version: int = None) -> Self:
+        model_instance = cls(version=version)
+
+        # Load the model state dictionary and scaler
+        checkpoint = torch.load(model_instance.instance_dir / "model.pth")
+        model_instance._network = _MLPNetwork(
+            input_dim=checkpoint["input_dim"], hidden_dims=checkpoint["hidden_dims"], dropout=checkpoint["dropout"]
+        ).to(model_instance._device)
+        model_instance._network.load_state_dict(checkpoint["model_state_dict"])
+        model_instance._scaler = torch.load(model_instance.instance_dir / "scaler.pth", weights_only=False)
+        model_instance._is_fitted = True
+        model_instance._network.eval()
+
+        return model_instance

@@ -1,5 +1,5 @@
-from src.models.baseline import EloBaselineModel
-from src.models.neural_network import TennisPredictorMLP
+from src.models.elo import TennisPredictorElo
+from src.models.mlp import TennisPredictorMLP
 
 from src.step_1_load_dataset import download_dataset, load_dataset
 from src.step_2_preprocess_data import preprocess_matches, audit_dataset
@@ -34,10 +34,13 @@ if __name__ == "__main__":
     # audit_dataset(X_validation.assign(player_A_win=y_validation))
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
-    print("\nTraining neural network...\n")
-    model = EloBaselineModel()
-    model.learn(X_train, y_train, X_validation, y_validation)
-    print("Finished training.")
+    # print("\nTraining neural network...\n")
+    # model = TennisPredictorMLP()
+    # model.learn(X_train, y_train, X_validation, y_validation)
+    # model.save()
+    # print("Finished training.")
+
+    model = TennisPredictorMLP.load(version=1)
 
     print("\nEvaluating model...\n")
     evaluate_model(model, X_test, y_test)
@@ -50,4 +53,6 @@ if __name__ == "__main__":
     # 5.e XGBoost
     # just a and b for now, will add c, d, and e in the future
 
-    # TODO: Step 6: Evaluate model performance and visualise results
+    # TODO: See if removing matches where player has played less than 10 times improves performance (elo not applicable)
+
+    # TODO: Maybe add covariance matrix comparing pairs of features and their correlation with the outcome

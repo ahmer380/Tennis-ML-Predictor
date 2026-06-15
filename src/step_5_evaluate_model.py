@@ -16,7 +16,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-from src.models.base import TennisPredictorModel
+from src.models.model import TennisPredictorModel
 
 
 def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray) -> None:
@@ -25,6 +25,7 @@ def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred
 
     fig, ax = plt.subplots(figsize=(5, 4))
     confusion_display.plot(ax=ax, cmap="Blues", colorbar=False)
+    ax.set_xlabel(f"Predicted label\n\nAccuracy: {accuracy_score(y_true, y_pred):.3f}")
     ax.set_title(f"{model.instance_name} Confusion Matrix")
     fig.tight_layout()
     fig.savefig(model.instance_dir / "confusion_matrix.png", dpi=150, bbox_inches="tight")
@@ -73,13 +74,15 @@ def evaluate_model(
     model: TennisPredictorModel,
     X_test: pd.DataFrame,
     y_test: pd.Series,
+    save_plots: bool = True,
 ) -> None:
     y_prob = model.predict(X_test)
     y_pred = model.predict_class(X_test)
 
-    plot_confusion_matrix(model, y_test, y_pred)
-    plot_roc_curve(model, y_test, y_prob)
-    plot_prediction_histogram(model, y_prob)
+    if save_plots:
+        plot_confusion_matrix(model, y_test, y_pred)
+        plot_roc_curve(model, y_test, y_prob)
+        plot_prediction_histogram(model, y_prob)
 
     print("=" * 50)
     print("MODEL EVALUATION")
