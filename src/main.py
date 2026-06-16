@@ -8,13 +8,14 @@ from src.step_3_feature_engineering import (
     audit_player_states,
     audit_player_h2h,
     audit_player_tournament_run,
+    plot_player_career_elo_trajectory,
 )
 from src.step_4_split_dataset import split_dataset
 from src.step_5_evaluate_model import evaluate_model
 
 if __name__ == "__main__":
     print("Downloading dataset...\n")
-    download_dataset()
+    # download_dataset()
     df = load_dataset()
 
     print("\nPreprocessing dataset...\n")
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     # audit_player_states(player_states)
     # audit_player_h2h(df_features, "Novak Djokovic", "Carlos Alcaraz")
     # audit_player_tournament_run(df_features, "Rafael Nadal", "US Open", 2019)
+    # plot_player_career_elo_trajectory(df_features, "Rafael Nadal")
 
     print("\nSplitting dataset...\n")
     X_train, y_train, X_validation, y_validation, X_test, y_test = split_dataset(df_features)
@@ -35,7 +37,7 @@ if __name__ == "__main__":
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
     print("\nTraining neural network...\n")
-    model = TennisPredictorMLP()
+    model = TennisPredictorElo()
     model.learn(X_train, y_train, X_validation, y_validation)
     model.save()
     print("Finished training.")
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     # model = TennisPredictorMLP.load(version=1)
 
     print("\nEvaluating model...\n")
-    evaluate_model(model, X_test, y_test)
+    evaluate_model(model, X_test, y_test, save_plots=False)
 
     # TODO: Step 5: Train and evaluate machine learning models
     # 5.a Baseline model (choosing higher elo)

@@ -12,8 +12,8 @@ BASE_ELO = 1500.0
 @dataclass
 class PlayerState:
     name: str
-    global_elo: float = BASE_ELO
-    surface_elos: Dict[str, float] = field(default_factory=lambda: defaultdict(lambda: BASE_ELO))
+    elos: Dict[str, float] = field(default_factory=lambda: defaultdict(lambda: BASE_ELO))
+    matches_played: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
     last_tournament_played_date: pd.Timestamp = None
     current_tournament_minutes_played: int = 0
     h2h_records: Dict[int, List[bool]] = field(
@@ -22,32 +22,20 @@ class PlayerState:
 
 
 class EloRatingEngine:
-    K_FACTOR = 24.0  # standard K-factor for tennis Elo
-    INACTIVITY_THRESHOLD_DAYS = 100  # days after which Elo starts decaying towards baseline
-    INACTIVITY_DECAY_RATE = 0.002  # daily decay rate for inactivity beyond threshold
+    def calculate_k_factor(self, matches_played: int, tourney_level: str) -> float:
+        """Calculate K-factor based on player experience and tournament level."""
+        MIN_K_FACTOR = 18.0
+        MAX_K_FACTOR = 40.0
 
-    # TODO:Increase K-factor based on player inactivity, number of matches played, or tournament importance (e.g., Grand Slams)
+        k_factor = max(MIN_K_FACTOR, min(MAX_K_FACTOR, 400.0 / (matches_played + 1)))
+
+        tier_multipliers = {"G": 1.15, "M": 1.0, "F": 1.0, "A": 0.9, "D": 0.6, "O": 0.6}
+
+        return k_factor * tier_multipliers[tourney_level]
 
     def calculate_expected_score(self, elo_a: float, elo_b: float) -> float:
         """Calculate expected score for player A against player B."""
         return 1.0 / (1.0 + 10 ** ((elo_b - elo_a) / 400.0))
-
-    def apply_inactivity_decay(self, player_state: PlayerState, match_date: pd.Timestamp) -> None:
-        """Update Elo for inactivity beyond threshold days since last tournament towards the baseline Elo."""
-        days_since_last_tournament = (
-            0
-            if player_state.last_tournament_played_date is None
-            else (match_date - player_state.last_tournament_played_date).days
-        )
-        if days_since_last_tournament > self.INACTIVITY_THRESHOLD_DAYS:
-            days_inactive = days_since_last_tournament - self.INACTIVITY_THRESHOLD_DAYS
-            decay = (1.0 - self.INACTIVITY_DECAY_RATE) ** days_inactive
-
-            player_state.global_elo = BASE_ELO + ((player_state.global_elo - BASE_ELO) * decay)
-            for surface in player_state.surface_elos:
-                player_state.surface_elos[surface] = BASE_ELO + (
-                    (player_state.surface_elos[surface] - BASE_ELO) * decay
-                )
 
     def update_player_elos(
         self,
@@ -55,31 +43,31 @@ class EloRatingEngine:
         player_b_state: PlayerState,
         match_date: pd.Timestamp,
         surface: str,
+        tourney_level: str,
         player_a_win: float,
     ) -> None:
         """Update player elos according to this formula: https://martiningram.github.io/elo-dynamic"""
-
-        # Apply inactivity decay before calculating expected scores
-        self.apply_inactivity_decay(player_a_state, match_date)
-        self.apply_inactivity_decay(player_b_state, match_date)
-
         # Update global elos
-        expected_score_a = self.calculate_expected_score(player_a_state.global_elo, player_b_state.global_elo)
+        expected_score_a = self.calculate_expected_score(player_a_state.elos["global"], player_b_state.elos["global"])
         expected_score_b = 1 - expected_score_a
-        player_a_state.global_elo = player_a_state.global_elo + self.K_FACTOR * (player_a_win - expected_score_a)
-        player_b_state.global_elo = player_b_state.global_elo + self.K_FACTOR * (
+        k_factor_a = self.calculate_k_factor(player_a_state.matches_played["global"], tourney_level)
+        k_factor_b = self.calculate_k_factor(player_b_state.matches_played["global"], tourney_level)
+        player_a_state.elos["global"] = player_a_state.elos["global"] + k_factor_a * (player_a_win - expected_score_a)
+        player_b_state.elos["global"] = player_b_state.elos["global"] + k_factor_b * (
             (1.0 - player_a_win) - expected_score_b
         )
 
         # Update surface-specific elos
         expected_score_a_surface = self.calculate_expected_score(
-            player_a_state.surface_elos[surface], player_b_state.surface_elos[surface]
+            player_a_state.elos[surface], player_b_state.elos[surface]
         )
         expected_score_b_surface = 1 - expected_score_a_surface
-        player_a_state.surface_elos[surface] = player_a_state.surface_elos[surface] + self.K_FACTOR * (
+        surface_k_factor_a = self.calculate_k_factor(player_a_state.matches_played[surface], tourney_level)
+        surface_k_factor_b = self.calculate_k_factor(player_b_state.matches_played[surface], tourney_level)
+        player_a_state.elos[surface] = player_a_state.elos[surface] + surface_k_factor_a * (
             player_a_win - expected_score_a_surface
         )
-        player_b_state.surface_elos[surface] = player_b_state.surface_elos[surface] + self.K_FACTOR * (
+        player_b_state.elos[surface] = player_b_state.elos[surface] + surface_k_factor_b * (
             (1.0 - player_a_win) - expected_score_b_surface
         )
 
@@ -152,13 +140,13 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         features["rank_B"].append(row["player_B_rank"])
         features["rank_diff"].append(row["player_A_rank"] - row["player_B_rank"])
 
-        features["global_elo_A"].append(player_a_state.global_elo)
-        features["global_elo_B"].append(player_b_state.global_elo)
-        features["global_elo_diff"].append(player_a_state.global_elo - player_b_state.global_elo)
+        features["global_elo_A"].append(player_a_state.elos["global"])
+        features["global_elo_B"].append(player_b_state.elos["global"])
+        features["global_elo_diff"].append(player_a_state.elos["global"] - player_b_state.elos["global"])
 
-        features["surface_elo_A"].append(player_a_state.surface_elos[surface])
-        features["surface_elo_B"].append(player_b_state.surface_elos[surface])
-        features["surface_elo_diff"].append(player_a_state.surface_elos[surface] - player_b_state.surface_elos[surface])
+        features["surface_elo_A"].append(player_a_state.elos[surface])
+        features["surface_elo_B"].append(player_b_state.elos[surface])
+        features["surface_elo_diff"].append(player_a_state.elos[surface] - player_b_state.elos[surface])
 
         h2h_wins_a = player_a_state.h2h_records[row["player_B_id"]].count(True)
         h2h_wins_b = player_b_state.h2h_records[row["player_A_id"]].count(True)
@@ -185,7 +173,14 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         features["player_A_win"].append(1 if row["player_A_win"] == 1 else 0)
 
         # Post-match updates to player states (Elo updates happen after feature capture to prevent leakage)
-        elo_engine.update_player_elos(player_a_state, player_b_state, tourney_date, surface, row["player_A_win"])
+        elo_engine.update_player_elos(
+            player_a_state=player_a_state,
+            player_b_state=player_b_state,
+            match_date=tourney_date,
+            surface=surface,
+            tourney_level=row["tourney_level"],
+            player_a_win=row["player_A_win"],
+        )
 
         player_a_state.h2h_records[row["player_B_id"]].append(row["player_A_win"] == 1)
         player_b_state.h2h_records[row["player_A_id"]].append(row["player_A_win"] == 0)
@@ -195,6 +190,11 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
 
         player_a_state.current_tournament_minutes_played += row["minutes"]
         player_b_state.current_tournament_minutes_played += row["minutes"]
+
+        player_a_state.matches_played["global"] += 1
+        player_b_state.matches_played["global"] += 1
+        player_a_state.matches_played[surface] += 1
+        player_b_state.matches_played[surface] += 1
 
     return (dfc.assign(**features), player_states)
 
@@ -209,10 +209,10 @@ def audit_player_states(player_states: Dict[int, PlayerState]) -> None:
         player_rows.append(
             {
                 "player_name": player_state.name,
-                "global": float(player_state.global_elo),
-                "hard": float(player_state.surface_elos["Hard"]),
-                "clay": float(player_state.surface_elos["Clay"]),
-                "grass": float(player_state.surface_elos["Grass"]),
+                "global": float(player_state.elos["global"]),
+                "hard": float(player_state.elos["Hard"]),
+                "clay": float(player_state.elos["Clay"]),
+                "grass": float(player_state.elos["Grass"]),
             }
         )
 
