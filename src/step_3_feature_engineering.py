@@ -29,7 +29,7 @@ class EloRatingEngine:
 
         k_factor = max(MIN_K_FACTOR, min(MAX_K_FACTOR, 400.0 / (matches_played + 1)))
 
-        tier_multipliers = {"G": 1.15, "M": 1.0, "F": 1.0, "A": 0.9, "D": 0.6, "O": 0.6}
+        tier_multipliers = {"G": 1.15, "M": 1.0, "F": 1.0, "A": 0.9, "C": 0.6}
 
         return k_factor * tier_multipliers[tourney_level]
 

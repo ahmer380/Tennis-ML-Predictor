@@ -30,7 +30,7 @@ def download_dataset(year_count: int = 20) -> None:
 
 
 def load_dataset(year_count: int = 20) -> pd.DataFrame:
-    most_recent_years = sorted(DATA_DIR.glob("atp_matches_*.csv"), reverse=True)[:year_count]
+    most_recent_years = sorted(sorted(DATA_DIR.glob("atp_matches_*.csv"), reverse=True)[:year_count])
     dfs = [pd.read_csv(filepath) for filepath in most_recent_years]
 
     return pd.concat(dfs, ignore_index=True)

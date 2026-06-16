@@ -55,6 +55,4 @@ if __name__ == "__main__":
     # 5.e XGBoost
     # just a and b for now, will add c, d, and e in the future
 
-    # TODO: See if removing matches where player has played less than 10 times improves performance (elo not applicable)
-
     # TODO: Maybe add covariance matrix comparing pairs of features and their correlation with the outcome
