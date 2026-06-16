@@ -29,8 +29,8 @@ class TennisPredictorElo(TennisPredictorModel):
         return 1.0 / (1.0 + np.power(10.0, -elo_diff / 400.0))
 
     def save(self) -> None:
-        raise NotImplementedError("TennisPredictorElo does not have learnable parameters to save.")
+        pass
 
     @classmethod
     def load(cls, version: int = None) -> Self:
-        raise NotImplementedError("TennisPredictorElo does not have learnable parameters to load.")
+        return cls()

@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
 import pandas as pd
+import matplotlib.pyplot as plt
 from tabulate import tabulate
 
 BASE_ELO = 1500.0
@@ -298,8 +299,6 @@ def audit_player_tournament_run(df_features: pd.DataFrame, player_name: str, tou
                 "tourney_name",
                 "global_elo_A",
                 "global_elo_B",
-                "surface_elo_A",
-                "surface_elo_B",
                 "h2h_wins_A",
                 "h2h_wins_B",
                 "tournament_minutes_A",
@@ -308,3 +307,47 @@ def audit_player_tournament_run(df_features: pd.DataFrame, player_name: str, tou
             ]
         ]
     )
+
+
+def plot_player_career_elo_trajectory(df_features: pd.DataFrame, player_name: str) -> None:
+    """Plot the career Elo trajectory of a specific player."""
+    player_matches = df_features[
+        (df_features["player_A_name"] == player_name) | (df_features["player_B_name"] == player_name)
+    ]
+
+    global_elo_values = player_matches.apply(
+        lambda row: row["global_elo_A"] if row["player_A_name"] == player_name else row["global_elo_B"], axis=1
+    )
+    global_elo_dates = pd.to_datetime(player_matches["tourney_date"], format="%Y%m%d")
+
+    hard_surface_matches = player_matches[player_matches["surface"] == "Hard"]
+    hard_elo_values = hard_surface_matches.apply(
+        lambda row: row["surface_elo_A"] if row["player_A_name"] == player_name else row["surface_elo_B"], axis=1
+    )
+    hard_elo_dates = pd.to_datetime(hard_surface_matches["tourney_date"], format="%Y%m%d")
+
+    clay_surface_matches = player_matches[player_matches["surface"] == "Clay"]
+    clay_elo_values = clay_surface_matches.apply(
+        lambda row: row["surface_elo_A"] if row["player_A_name"] == player_name else row["surface_elo_B"], axis=1
+    )
+    clay_elo_dates = pd.to_datetime(clay_surface_matches["tourney_date"], format="%Y%m%d")
+
+    grass_surface_matches = player_matches[player_matches["surface"] == "Grass"]
+    grass_elo_values = grass_surface_matches.apply(
+        lambda row: row["surface_elo_A"] if row["player_A_name"] == player_name else row["surface_elo_B"], axis=1
+    )
+    grass_elo_dates = pd.to_datetime(grass_surface_matches["tourney_date"], format="%Y%m%d")
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(global_elo_dates, global_elo_values, label="Global Elo", color="black")
+    plt.plot(hard_elo_dates, hard_elo_values, label="Hard Surface Elo", color="blue", linestyle="--")
+    plt.plot(clay_elo_dates, clay_elo_values, label="Clay Surface Elo", color="orange", linestyle="--")
+    plt.plot(grass_elo_dates, grass_elo_values, label="Grass Surface Elo", color="green", linestyle="--")
+    plt.title(f"Career Elo Trajectory of {player_name}")
+    plt.xlabel("Date")
+    plt.ylabel("Elo Rating")
+    plt.legend()
+    plt.grid()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
