@@ -7,6 +7,7 @@ from src.step_3_feature_engineering import (
     engineer_features,
     audit_player_states,
     audit_player_h2h,
+    audit_match,
     audit_player_tournament_run,
     plot_player_career_elo_trajectory,
 )
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     # audit_dataset(df_features)
     # audit_player_states(player_states)
     # audit_player_h2h(df_features, "Novak Djokovic", "Carlos Alcaraz")
+    # audit_match(df_features, "Novak Djokovic", "Rafael Nadal", "Rome Masters", 2011)
     # audit_player_tournament_run(df_features, "Rafael Nadal", "US Open", 2019)
     # plot_player_career_elo_trajectory(df_features, "Rafael Nadal")
 
@@ -47,6 +49,10 @@ if __name__ == "__main__":
     print("\nEvaluating model...\n")
     evaluate_model(model, X_test, y_test, save_plots=False)
 
+    # TODO: Maybe add sns pairplot to visualize features and their relationships with the target variable?
+
+    # TODO: Train XGBoost model and compare with neural network and baseline model
+
     # TODO: Step 5: Train and evaluate machine learning models
     # 5.a Baseline model (choosing higher elo)
     # 5.b Neural network
@@ -54,5 +60,3 @@ if __name__ == "__main__":
     # 5.d Random forest
     # 5.e XGBoost
     # just a and b for now, will add c, d, and e in the future
-
-    # TODO: Maybe add covariance matrix comparing pairs of features and their correlation with the outcome

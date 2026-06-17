@@ -24,9 +24,9 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
     dfc = dfc.dropna()
 
     dfc = dfc[(dfc["winner_ht"] >= 100) & (dfc["loser_ht"] >= 100)]
-    dfc = dfc[(dfc["tourney_level"].isin(["G", "M", "F", "A", "C"]))]
-    dfc = dfc[(dfc["surface"].isin(["Hard", "Clay", "Grass"]))]
-    dfc = dfc[(dfc["score"] != "W/O")]
+    dfc = dfc[dfc["tourney_level"].isin(["G", "M", "F", "A", "C"])]
+    dfc = dfc[dfc["surface"].isin(["Hard", "Clay", "Grass"])]
+    dfc = dfc[~dfc["score"].str.contains("W/O|RET|DEF", case=False, na=False)]
 
     dfc["tourney_date"] = pd.to_datetime(dfc["tourney_date"], format="%Y%m%d")
 
@@ -71,26 +71,15 @@ def audit_dataset(df: pd.DataFrame) -> None:
     summary_rows = []
     for column_name in df.columns:
         series = df[column_name]
-        missing_count = int(series.isna().sum())
-
-        if is_numeric_dtype(series) or is_datetime64_any_dtype(series):
-            minimum = series.min()
-            maximum = series.max()
-        else:
-            minimum = "N/A"
-            maximum = "N/A"
-
         summary_rows.append(
             {
                 "name": column_name,
                 "data_type": str(series.dtype),
-                "minimum": minimum,
-                "maximum": maximum,
-                "missing_rows": missing_count,
+                "minimum": series.min(),
+                "maximum": series.max(),
+                "missing_rows": int(series.isna().sum()),
             }
         )
-
-    summary_rows.sort(key=lambda row: row["name"])
 
     print("Dataset columns summary:")
     print(tabulate(summary_rows, headers="keys", tablefmt="github", showindex=False))

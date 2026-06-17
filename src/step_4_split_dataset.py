@@ -12,28 +12,64 @@ def split_dataset(
     assert train_size + validation_size + test_size == 1.0, "Train, validation, and test sizes must sum to 1.0"
 
     finalised_ml_features = [
-        "rank_A",
-        "rank_B",
+        # Ranking
+        "player_A_rank",
+        "player_B_rank",
         "rank_diff",
-        "global_elo_A",
-        "global_elo_B",
+        "player_A_rank_points",
+        "player_B_rank_points",
+        "rank_points_diff",
+        # Experience
+        "player_A_global_matches_played",
+        "player_B_global_matches_played",
+        "global_matches_played_diff",
+        "player_A_surface_matches_played",
+        "player_B_surface_matches_played",
+        "surface_matches_played_diff",
+        # Elo
+        "player_A_global_elo",
+        "player_B_global_elo",
         "global_elo_diff",
-        "surface_elo_A",
-        "surface_elo_B",
+        "player_A_surface_elo",
+        "player_B_surface_elo",
         "surface_elo_diff",
-        "h2h_wins_A",
-        "h2h_wins_B",
+        # Form
+        "player_A_global_win_pct_last_10",
+        "player_B_global_win_pct_last_10",
+        "global_win_pct_last_10_diff",
+        "player_A_global_win_pct_last_25",
+        "player_B_global_win_pct_last_25",
+        "global_win_pct_last_25_diff",
+        "player_A_global_win_pct_last_50",
+        "player_B_global_win_pct_last_50",
+        "global_win_pct_last_50_diff",
+        "player_A_global_win_pct_last_100",
+        "player_B_global_win_pct_last_100",
+        "global_win_pct_last_100_diff",
+        "player_A_surface_win_pct_last_10",
+        "player_B_surface_win_pct_last_10",
+        "surface_win_pct_last_10_diff",
+        # Head-to-head
+        "player_A_h2h_wins",
+        "player_B_h2h_wins",
         "h2h_diff",
-        "age_A",
-        "age_B",
+        # Physical
+        "player_A_age",
+        "player_B_age",
         "age_diff",
-        "tournament_minutes_A",
-        "tournament_minutes_B",
+        "player_A_ht",
+        "player_B_ht",
+        "ht_diff",
+        # Tournament fatigue
+        "player_A_tournament_minutes",
+        "player_B_tournament_minutes",
         "tournament_minutes_diff",
+        # Match context
+        "best_of_5",
         "hard_surface",
         "clay_surface",
         "grass_surface",
-        "best_of_5",
+        # Target
         "player_A_win",
     ]
 
