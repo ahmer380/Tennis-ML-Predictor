@@ -1,4 +1,5 @@
 from typing import Optional, Self
+import copy
 
 import numpy as np
 import pandas as pd
@@ -6,24 +7,30 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, brier_score_loss
+import joblib
 
 from src.models.model import TennisPredictorModel
 
-BATCH_SIZE = 32
-LEARNING_RATE = 1e-4
-EPOCHS = 10
+BATCH_SIZE = 256
+LEARNING_RATE = 3e-4
+EPOCHS = 250
+HIDDEN_DIMS = (128, 64, 32)
+DROPOUTS = (0.4, 0.3, 0.1)
+PATIENCE = 25
 
 
 class _MLPNetwork(nn.Module):
-    def __init__(self, input_dim: int, hidden_dims: tuple[int], dropout: float) -> None:
+    def __init__(self, input_dim: int, hidden_dims: tuple[int], dropouts: tuple[float]) -> None:
         super().__init__()
 
         layers = []
         previous_dim = input_dim
 
-        for hidden_dim in hidden_dims:
+        for dropout, hidden_dim in zip(dropouts, hidden_dims):
             layers.append(nn.Linear(previous_dim, hidden_dim))
-            layers.append(nn.ReLU())
+            layers.append(nn.BatchNorm1d(hidden_dim))
+            layers.append(nn.GELU())
             layers.append(nn.Dropout(dropout))
             previous_dim = hidden_dim
 
@@ -32,7 +39,7 @@ class _MLPNetwork(nn.Module):
         self.network = nn.Sequential(*layers)
         self.input_dim = input_dim
         self.hidden_dims = hidden_dims
-        self.dropout = dropout
+        self.dropouts = dropouts
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x).squeeze(-1)
@@ -71,54 +78,72 @@ class TennisPredictorMLP(TennisPredictorModel):
         y_validation_tensor = torch.tensor(y_validation.to_numpy(dtype="float32"), dtype=torch.float32).to(self._device)
 
         # Configure neural network, loss function, and optimizer
-        self._network = _MLPNetwork(input_dim=X_train.shape[1], hidden_dims=(64, 32), dropout=0.2).to(self._device)
+        self._network = _MLPNetwork(input_dim=X_train.shape[1], hidden_dims=HIDDEN_DIMS, dropouts=DROPOUTS).to(
+            self._device
+        )
         criterion = nn.BCEWithLogitsLoss()
         optimizer = torch.optim.Adam(self._network.parameters(), lr=LEARNING_RATE)
 
-        for epoch in range(EPOCHS + 1):
+        best_validation_loss = float("inf")
+        patience_counter = 0
+        best_model_state_dict = None
+
+        for epoch in range(EPOCHS):
             # Train the model for one epoch
             self._network.train()
 
-            train_loss_sum = 0.0
-            train_correct = 0
-            train_total = 0
+            train_logits = []
+            train_targets = []
 
-            if epoch != 0:
-                for batch_features, batch_targets in dataloader:
-                    batch_features = batch_features.to(self._device)
-                    batch_targets = batch_targets.to(self._device)
-                    batch_size = batch_targets.size(dim=0)
+            for batch_features, batch_targets in dataloader:
+                batch_features = batch_features.to(self._device)
+                batch_targets = batch_targets.to(self._device)
 
-                    optimizer.zero_grad()
-                    logits = self._network(batch_features)
-                    loss = criterion(logits, batch_targets)
-                    loss.backward()
-                    optimizer.step()
+                optimizer.zero_grad()
+                logits = self._network(batch_features)
+                loss = criterion(logits, batch_targets)
+                loss.backward()
+                optimizer.step()
 
-                    train_loss_sum += loss.item() * batch_size
-                    train_correct += ((torch.sigmoid(logits) >= 0.5).float() == batch_targets).sum().item()
-                    train_total += batch_size
+                train_logits.append(logits.detach().cpu())
+                train_targets.append(batch_targets.detach().cpu())
 
-            train_loss = train_loss_sum / train_total if train_total > 0 else 0.0
-            train_accuracy = train_correct / train_total if train_total > 0 else 0.0
+            train_probabilities = torch.sigmoid(torch.cat(train_logits))
+            train_class_predictions = (train_probabilities >= 0.5).int()
+
+            train_loss = criterion(torch.cat(train_logits), torch.cat(train_targets)).item()
+            train_accuracy = accuracy_score(torch.cat(train_targets), train_class_predictions)
+            train_brier_score = brier_score_loss(torch.cat(train_targets), train_probabilities)
 
             # Evaluate the model on the validation set
             self._network.eval()
             with torch.no_grad():
-                logits = self._network(X_validation_tensor)
-                validation_loss = criterion(logits, y_validation_tensor).item()
-                validation_accuracy = (
-                    ((torch.sigmoid(logits) >= 0.5).float() == y_validation_tensor).sum().item()
-                    / y_validation_tensor.size(dim=0)
-                    if y_validation_tensor.size(dim=0) > 0
-                    else 0.0
-                )
+                validation_logits = self._network(X_validation_tensor)
+                validation_probabilities = torch.sigmoid(validation_logits).cpu().numpy()
+                validation_class_predictions = (validation_probabilities >= 0.5).astype(int)
+
+                validation_loss = criterion(validation_logits, y_validation_tensor).item()
+                validation_accuracy = accuracy_score(y_validation_tensor.cpu().numpy(), validation_class_predictions)
+                validation_brier_score = brier_score_loss(y_validation_tensor.cpu().numpy(), validation_probabilities)
 
             print(
-                f"Epoch {epoch}/{EPOCHS} | Train Loss: {train_loss:.4f} | Train Acc: {train_accuracy * 100:.1f}% | "
-                f"Val Loss: {validation_loss:.4f} | Val Acc: {validation_accuracy * 100:.1f}%"
+                f"Epoch {epoch + 1}/{EPOCHS} | ",
+                f"Train Loss: {train_loss:.4f} - Acc: {train_accuracy * 100:.1f}% - Brier: {train_brier_score:.4f} | ",
+                f"Val Loss: {validation_loss:.4f} - Acc: {validation_accuracy * 100:.1f}% - Brier: {validation_brier_score:.4f}",
             )
 
+            # Early stopping
+            if validation_loss < best_validation_loss:
+                best_validation_loss = validation_loss
+                patience_counter = 0
+                best_model_state_dict = copy.deepcopy(self._network.state_dict())
+            else:
+                patience_counter += 1
+                if patience_counter >= PATIENCE:
+                    print(f"Early stopping triggered after {epoch} epochs.")
+                    break
+
+        self._network.load_state_dict(best_model_state_dict)
         self._is_fitted = True
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -142,10 +167,10 @@ class TennisPredictorMLP(TennisPredictorModel):
             "model_state_dict": self._network.state_dict(),
             "input_dim": self._network.input_dim,
             "hidden_dims": self._network.hidden_dims,
-            "dropout": self._network.dropout,
+            "dropouts": self._network.dropouts,
         }
         torch.save(checkpoint, self.instance_dir / "model.pth")
-        torch.save(self._scaler, self.instance_dir / "scaler.pth")
+        joblib.dump(self._scaler, self.instance_dir / "scaler.joblib")
 
     @classmethod
     def load(cls, version: int = None) -> Self:
@@ -154,10 +179,10 @@ class TennisPredictorMLP(TennisPredictorModel):
         # Load the model state dictionary and scaler
         checkpoint = torch.load(model_instance.instance_dir / "model.pth")
         model_instance._network = _MLPNetwork(
-            input_dim=checkpoint["input_dim"], hidden_dims=checkpoint["hidden_dims"], dropout=checkpoint["dropout"]
+            input_dim=checkpoint["input_dim"], hidden_dims=checkpoint["hidden_dims"], dropouts=checkpoint["dropouts"]
         ).to(model_instance._device)
         model_instance._network.load_state_dict(checkpoint["model_state_dict"])
-        model_instance._scaler = torch.load(model_instance.instance_dir / "scaler.pth", weights_only=False)
+        model_instance._scaler = joblib.load(model_instance.instance_dir / "scaler.joblib")
         model_instance._is_fitted = True
 
         return model_instance

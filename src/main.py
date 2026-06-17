@@ -38,25 +38,17 @@ if __name__ == "__main__":
     # audit_dataset(X_validation.assign(player_A_win=y_validation))
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
-    print("\nTraining neural network...\n")
-    model = TennisPredictorElo()
-    model.learn(X_train, y_train, X_validation, y_validation)
-    model.save()
-    print("Finished training.")
+    # print("\nTraining neural network...\n")
+    # model = TennisPredictorMLP()
+    # model.learn(X_train, y_train, X_validation, y_validation)
+    # model.save()
+    # print("Finished training.")
 
-    # model = TennisPredictorMLP.load(version=1)
+    model = TennisPredictorMLP.load(version=1)
 
     print("\nEvaluating model...\n")
     evaluate_model(model, X_test, y_test, save_plots=False)
 
-    # TODO: Maybe add sns pairplot to visualize features and their relationships with the target variable?
-
+    # TODO: Expand test set to evaluate tournament run predictions
     # TODO: Train XGBoost model and compare with neural network and baseline model
-
-    # TODO: Step 5: Train and evaluate machine learning models
-    # 5.a Baseline model (choosing higher elo)
-    # 5.b Neural network
-    # 5.c Logistic regression
-    # 5.d Random forest
-    # 5.e XGBoost
-    # just a and b for now, will add c, d, and e in the future
+    # TODO: Maybe add sns pairplot to visualize features and their relationships with the target variable?
