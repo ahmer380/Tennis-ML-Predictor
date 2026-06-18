@@ -2,8 +2,8 @@ Evaluation Metrics for tennis_predictor_xgboost_v1
 
 Log Loss: 0.616
 Brier Score: 0.214
-ROC AUC: 0.717
-Accuracy: 0.654
-F1 Score: 0.654
+ROC AUC: 0.716
+Accuracy: 0.651
+F1 Score: 0.651
 Precision: 0.658
-Recall: 0.651
+Recall: 0.645

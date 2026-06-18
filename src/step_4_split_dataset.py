@@ -2,6 +2,8 @@ from typing import Tuple
 
 import pandas as pd
 
+MINIMUM_MATCH_THRESHOLD = 10
+
 
 def split_dataset(
     df_features: pd.DataFrame, train_size: float = 0.7, validation_size: float = 0.15, test_size: float = 0.15
@@ -53,6 +55,31 @@ def split_dataset(
         "player_A_h2h_wins",
         "player_B_h2h_wins",
         "h2h_diff",
+        # Game stats
+        "player_A_ace_pct",
+        "player_B_ace_pct",
+        "ace_pct_diff",
+        "player_A_df_pct",
+        "player_B_df_pct",
+        "df_pct_diff",
+        "player_A_1st_in_pct",
+        "player_B_1st_in_pct",
+        "1st_in_pct_diff",
+        "player_A_1st_won_pct",
+        "player_B_1st_won_pct",
+        "1st_won_pct_diff",
+        "player_A_2nd_won_pct",
+        "player_B_2nd_won_pct",
+        "2nd_won_pct_diff",
+        "player_A_bp_saved_pct",
+        "player_B_bp_saved_pct",
+        "bp_saved_pct_diff",
+        "player_A_rp_won_pct",
+        "player_B_rp_won_pct",
+        "rp_won_pct_diff",
+        "player_A_bp_won_pct",
+        "player_B_bp_won_pct",
+        "bp_won_pct_diff",
         # Physical
         "player_A_age",
         "player_B_age",
@@ -74,6 +101,10 @@ def split_dataset(
     ]
 
     dfc = df_features.copy()
+    dfc = dfc[
+        (dfc["player_A_global_matches_played"] >= MINIMUM_MATCH_THRESHOLD)
+        & (dfc["player_B_global_matches_played"] >= MINIMUM_MATCH_THRESHOLD)
+    ]
     dfc = dfc[finalised_ml_features]
 
     train_end = int(len(dfc) * train_size)

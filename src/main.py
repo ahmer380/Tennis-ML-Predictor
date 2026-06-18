@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # audit_dataset(X_validation.assign(player_A_win=y_validation))
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
-    print("\nTraining model...\n")
+    # print("\nTraining model...\n")
     # model = TennisPredictorXGBoost()
     # model.learn(X_train, y_train, X_validation, y_validation)
     # model.save()

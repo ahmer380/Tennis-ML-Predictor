@@ -20,6 +20,16 @@ class PlayerState:
         default_factory=lambda: defaultdict(list)
     )  # key=opponent_id, value=win/loss record
 
+    # player game stats
+    p_ace: List[float] = field(default_factory=list)
+    p_df: List[float] = field(default_factory=list)
+    p_1st_in: List[float] = field(default_factory=list)
+    p_1st_won: List[float] = field(default_factory=list)
+    p_2nd_won: List[float] = field(default_factory=list)
+    p_bp_saved: List[float] = field(default_factory=list)
+    p_rp_won: List[float] = field(default_factory=list)
+    p_bp_won: List[float] = field(default_factory=list)
+
     def get_matches_played(self, surface: str = "global") -> int:
         """Return the number of matches played on a given surface."""
         return len(self.match_history[surface])
@@ -27,7 +37,12 @@ class PlayerState:
     def get_recent_win_percentage(self, num_matches: int, surface: str = "global") -> float:
         """Return the win percentage over the last `num_matches` on a given surface."""
         recent_matches = self.match_history[surface][-min(num_matches, len(self.match_history[surface])) :]
-        return sum(recent_matches) / len(recent_matches) if recent_matches else 0.0
+        return sum(recent_matches) / len(recent_matches) if recent_matches else 0.5
+
+    def get_recent_game_stat_average(self, game_stat: str, num_matches: int = 100, default: float = 0.5) -> float:
+        """Return the average of a game stat over the last `num_matches`."""
+        recent_stats = getattr(self, game_stat)[-min(num_matches, len(getattr(self, game_stat))) :]
+        return sum(recent_stats) / len(recent_stats) if recent_stats else default
 
 
 class EloRatingEngine:
@@ -38,7 +53,7 @@ class EloRatingEngine:
 
         k_factor = max(MIN_K_FACTOR, min(MAX_K_FACTOR, 400.0 / (matches_played + 1)))
 
-        tier_multipliers = {"G": 1.15, "M": 1.0, "F": 1.0, "A": 0.9, "C": 0.6}
+        tier_multipliers = {"G": 1.1, "M": 1.0, "F": 1.0, "A": 0.9, "C": 0.6}
 
         return k_factor * tier_multipliers[tourney_level]
 
@@ -50,7 +65,6 @@ class EloRatingEngine:
         self,
         player_a_state: PlayerState,
         player_b_state: PlayerState,
-        match_date: pd.Timestamp,
         surface: str,
         tourney_level: str,
         player_a_win: float,
@@ -135,6 +149,30 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         "player_A_h2h_wins": [],
         "player_B_h2h_wins": [],
         "h2h_diff": [],
+        "player_A_ace_pct": [],
+        "player_B_ace_pct": [],
+        "ace_pct_diff": [],
+        "player_A_df_pct": [],
+        "player_B_df_pct": [],
+        "df_pct_diff": [],
+        "player_A_1st_in_pct": [],
+        "player_B_1st_in_pct": [],
+        "1st_in_pct_diff": [],
+        "player_A_1st_won_pct": [],
+        "player_B_1st_won_pct": [],
+        "1st_won_pct_diff": [],
+        "player_A_2nd_won_pct": [],
+        "player_B_2nd_won_pct": [],
+        "2nd_won_pct_diff": [],
+        "player_A_bp_saved_pct": [],
+        "player_B_bp_saved_pct": [],
+        "bp_saved_pct_diff": [],
+        "player_A_rp_won_pct": [],
+        "player_B_rp_won_pct": [],
+        "rp_won_pct_diff": [],
+        "player_A_bp_won_pct": [],
+        "player_B_bp_won_pct": [],
+        "bp_won_pct_diff": [],
         "player_A_tournament_minutes": [],
         "player_B_tournament_minutes": [],
         "tournament_minutes_diff": [],
@@ -238,6 +276,55 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         features["player_B_h2h_wins"].append(h2h_wins_b)
         features["h2h_diff"].append(h2h_wins_a - h2h_wins_b)
 
+        # Compute player game stats features
+        player_a_ace_pct = player_a_state.get_recent_game_stat_average("p_ace", 100, 0.08)
+        player_b_ace_pct = player_b_state.get_recent_game_stat_average("p_ace", 100, 0.08)
+        features["player_A_ace_pct"].append(player_a_ace_pct)
+        features["player_B_ace_pct"].append(player_b_ace_pct)
+        features["ace_pct_diff"].append(player_a_ace_pct - player_b_ace_pct)
+
+        player_a_df_pct = player_a_state.get_recent_game_stat_average("p_df", 100, 0.05)
+        player_b_df_pct = player_b_state.get_recent_game_stat_average("p_df", 100, 0.05)
+        features["player_A_df_pct"].append(player_a_df_pct)
+        features["player_B_df_pct"].append(player_b_df_pct)
+        features["df_pct_diff"].append(player_a_df_pct - player_b_df_pct)
+
+        player_a_1st_in_pct = player_a_state.get_recent_game_stat_average("p_1st_in", 100, 0.5)
+        player_b_1st_in_pct = player_b_state.get_recent_game_stat_average("p_1st_in", 100, 0.5)
+        features["player_A_1st_in_pct"].append(player_a_1st_in_pct)
+        features["player_B_1st_in_pct"].append(player_b_1st_in_pct)
+        features["1st_in_pct_diff"].append(player_a_1st_in_pct - player_b_1st_in_pct)
+
+        player_a_1st_won_pct = player_a_state.get_recent_game_stat_average("p_1st_won", 100, 0.5)
+        player_b_1st_won_pct = player_b_state.get_recent_game_stat_average("p_1st_won", 100, 0.5)
+        features["player_A_1st_won_pct"].append(player_a_1st_won_pct)
+        features["player_B_1st_won_pct"].append(player_b_1st_won_pct)
+        features["1st_won_pct_diff"].append(player_a_1st_won_pct - player_b_1st_won_pct)
+
+        player_a_2nd_won_pct = player_a_state.get_recent_game_stat_average("p_2nd_won", 100, 0.5)
+        player_b_2nd_won_pct = player_b_state.get_recent_game_stat_average("p_2nd_won", 100, 0.5)
+        features["player_A_2nd_won_pct"].append(player_a_2nd_won_pct)
+        features["player_B_2nd_won_pct"].append(player_b_2nd_won_pct)
+        features["2nd_won_pct_diff"].append(player_a_2nd_won_pct - player_b_2nd_won_pct)
+
+        player_a_bp_saved_pct = player_a_state.get_recent_game_stat_average("p_bp_saved", 100, 0.5)
+        player_b_bp_saved_pct = player_b_state.get_recent_game_stat_average("p_bp_saved", 100, 0.5)
+        features["player_A_bp_saved_pct"].append(player_a_bp_saved_pct)
+        features["player_B_bp_saved_pct"].append(player_b_bp_saved_pct)
+        features["bp_saved_pct_diff"].append(player_a_bp_saved_pct - player_b_bp_saved_pct)
+
+        player_a_rp_won_pct = player_a_state.get_recent_game_stat_average("p_rp_won", 100, 0.5)
+        player_b_rp_won_pct = player_b_state.get_recent_game_stat_average("p_rp_won", 100, 0.5)
+        features["player_A_rp_won_pct"].append(player_a_rp_won_pct)
+        features["player_B_rp_won_pct"].append(player_b_rp_won_pct)
+        features["rp_won_pct_diff"].append(player_a_rp_won_pct - player_b_rp_won_pct)
+
+        player_a_bp_won_pct = player_a_state.get_recent_game_stat_average("p_bp_won", 100, 0.5)
+        player_b_bp_won_pct = player_b_state.get_recent_game_stat_average("p_bp_won", 100, 0.5)
+        features["player_A_bp_won_pct"].append(player_a_bp_won_pct)
+        features["player_B_bp_won_pct"].append(player_b_bp_won_pct)
+        features["bp_won_pct_diff"].append(player_a_bp_won_pct - player_b_bp_won_pct)
+
         # Compute tournament fatigue features
         features["player_A_tournament_minutes"].append(player_a_state.current_tournament_minutes_played)
         features["player_B_tournament_minutes"].append(player_b_state.current_tournament_minutes_played)
@@ -256,7 +343,6 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         elo_engine.update_player_elos(
             player_a_state=player_a_state,
             player_b_state=player_b_state,
-            match_date=tourney_date,
             surface=surface,
             tourney_level=row["tourney_level"],
             player_a_win=row["player_A_win"],
@@ -275,6 +361,37 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerS
         player_b_state.match_history["global"].append(row["player_A_win"] == 0)
         player_a_state.match_history[surface].append(row["player_A_win"] == 1)
         player_b_state.match_history[surface].append(row["player_A_win"] == 0)
+
+        player_a_state.p_ace.append(row["player_A_ace"] / row["player_A_svpt"])
+        player_b_state.p_ace.append(row["player_B_ace"] / row["player_B_svpt"])
+        player_a_state.p_df.append(row["player_A_df"] / row["player_A_svpt"])
+        player_b_state.p_df.append(row["player_B_df"] / row["player_B_svpt"])
+        player_a_state.p_1st_in.append(row["player_A_1stIn"] / row["player_A_svpt"])
+        player_b_state.p_1st_in.append(row["player_B_1stIn"] / row["player_B_svpt"])
+        player_a_state.p_1st_won.append(row["player_A_1stWon"] / row["player_A_1stIn"])
+        player_b_state.p_1st_won.append(row["player_B_1stWon"] / row["player_B_1stIn"])
+        if (row["player_A_svpt"] - row["player_A_1stIn"]) > 0:
+            player_a_state.p_2nd_won.append(row["player_A_2ndWon"] / (row["player_A_svpt"] - row["player_A_1stIn"]))
+        if (row["player_B_svpt"] - row["player_B_1stIn"]) > 0:
+            player_b_state.p_2nd_won.append(row["player_B_2ndWon"] / (row["player_B_svpt"] - row["player_B_1stIn"]))
+        if row["player_A_bpFaced"] > 0:
+            player_a_state.p_bp_saved.append(row["player_A_bpSaved"] / row["player_A_bpFaced"])
+        if row["player_B_bpFaced"] > 0:
+            player_b_state.p_bp_saved.append(row["player_B_bpSaved"] / row["player_B_bpFaced"])
+        player_a_state.p_rp_won.append(
+            (row["player_B_svpt"] - row["player_B_1stWon"] - row["player_B_2ndWon"]) / row["player_B_svpt"]
+        )
+        player_b_state.p_rp_won.append(
+            (row["player_A_svpt"] - row["player_A_1stWon"] - row["player_A_2ndWon"]) / row["player_A_svpt"]
+        )
+        if row["player_B_bpFaced"] > 0:
+            player_a_state.p_bp_won.append(
+                (row["player_B_bpFaced"] - row["player_B_bpSaved"]) / row["player_B_bpFaced"]
+            )
+        if row["player_A_bpFaced"] > 0:
+            player_b_state.p_bp_won.append(
+                (row["player_A_bpFaced"] - row["player_A_bpSaved"]) / row["player_A_bpFaced"]
+            )
 
     return (dfc.assign(**features), player_states)
 

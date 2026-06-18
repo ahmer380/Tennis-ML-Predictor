@@ -23,7 +23,9 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
     dfc = dfc.drop(columns=NOISY_COLUMNS)
     dfc = dfc.dropna()
 
+    # Miscellaneous filters to remove outlier matches
     dfc = dfc[(dfc["winner_ht"] >= 100) & (dfc["loser_ht"] >= 100)]
+    dfc = dfc[(dfc["w_svpt"] > 0) & (dfc["l_svpt"] > 0)]
     dfc = dfc[dfc["tourney_level"].isin(["G", "M", "F", "A", "C"])]
     dfc = dfc[dfc["surface"].isin(["Hard", "Clay", "Grass"])]
     dfc = dfc[~dfc["score"].str.contains("W/O|RET|DEF", case=False, na=False)]
