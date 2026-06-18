@@ -49,4 +49,8 @@ if __name__ == "__main__":
     print("\nEvaluating model...\n")
     evaluate_model(model, X_test, y_test, save_data=False)
 
-    # TODO: Expand test set to evaluate tournament run predictions, part of api?
+    # Maybe quickly evaluate model using a grand slam as a test set?
+
+    # TODO: NO MORE MODEL TUNING, just FASTAPI time!
+    # TODO: Add predict endpoint which takes two players, surface, date, best of, and return probability of player A winning
+
