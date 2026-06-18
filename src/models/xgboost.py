@@ -62,7 +62,10 @@ class TennisPredictorXGBoost(TennisPredictorModel):
 
         print("\n--- Training Complete ---")
         print(f"Best Iteration: {self._xgbclassifier.best_iteration}")
-        print(f"Validation Log Loss: {val_log_loss:.4f} | Validation Accuracy: {val_acc * 100:.2f}% | Validation Brier Score: {val_brier:.4f}")
+        print(
+            f"Validation Log Loss: {val_log_loss:.4f} | Validation Accuracy: {val_acc * 100:.2f}% | Validation Brier Score: {val_brier:.4f}"
+        )
+        self.log_feature_importance(feature_names=X_train.columns.tolist())
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         if not self._is_fitted:
@@ -82,7 +85,37 @@ class TennisPredictorXGBoost(TennisPredictorModel):
     def load(cls, version: int = None) -> Self:
         model_instance = cls(version=version)
 
-        model_instance._xgbclassifier.load_model(str(model_instance.instance_dir / "model.json"))
+        model_instance._xgbclassifier.load_model(model_instance.instance_dir / "model.json")
         model_instance._is_fitted = True
 
         return model_instance
+
+    def log_feature_importance(self, feature_names: list[str]) -> None:
+        """Log the feature importance of the trained XGBoost model to a text file."""
+
+        if not self._is_fitted:
+            raise RuntimeError(f"{self.instance_name} must be trained before calling log_feature_importance().")
+
+        importances = self._xgbclassifier.feature_importances_
+        if len(importances) != len(feature_names):
+            raise ValueError(
+                f"Length of feature_names ({len(feature_names)}) does not match number of features in the model ({len(importances)})."
+            )
+        feature_importance_pairs = sorted(
+            zip(feature_names, importances),
+            key=lambda x: x[1],
+            reverse=True,
+        )
+
+        lines = []
+        lines.append(f"Feature Importance Report for {self.instance_name}\n")
+        lines.append(f"Total features: {len(feature_names)}\n")
+        for i, (name, score) in enumerate(feature_importance_pairs, 1):
+            lines.append(f"{i:03d}. {name:<40} {score:.6f}")
+
+        lines.append(f"\nSum of feature importances (expected value = 1.000000): {sum(importances):.6f}")
+
+        output_path = self.instance_dir / "feature_importance.txt"
+        with open(output_path, "w") as f:
+            f.write("\n".join(lines))
+        print(f"Feature importance report saved to: {output_path}")
