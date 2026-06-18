@@ -12,7 +12,7 @@ class TennisPredictorElo(TennisPredictorModel):
     MODEL_NAME = "tennis_predictor_elo"
 
     def __init__(self) -> None:
-        super().__init__(parametric=False)
+        super().__init__(trainable=False)
 
     def learn(
         self,

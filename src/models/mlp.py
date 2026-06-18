@@ -51,7 +51,7 @@ class TennisPredictorMLP(TennisPredictorModel):
     MODEL_NAME = "tennis_predictor_mlp"
 
     def __init__(self, version: int = None) -> None:
-        super().__init__(parametric=True, version=version)
+        super().__init__(trainable=True, version=version)
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._scaler = StandardScaler()
         self._network: Optional[_MLPNetwork] = None
@@ -67,6 +67,8 @@ class TennisPredictorMLP(TennisPredictorModel):
         assert (
             not self._is_fitted
         ), f"{self.instance_name} has already been trained. Create a new instance to train again."
+
+        print(f"Training {self.instance_name}...\n")
 
         # Convert training and validation data to normalised PyTorch tensors and create DataLoaders
         X_tensor = torch.tensor(self._scaler.fit_transform(X_train), dtype=torch.float32)
@@ -148,7 +150,7 @@ class TennisPredictorMLP(TennisPredictorModel):
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         if not self._is_fitted or self._network is None:
-            raise RuntimeError("TennisPredictorMLP must be trained before calling predict().")
+            raise RuntimeError(f"{self.instance_name} must be trained before calling predict().")
 
         X_tensor = torch.tensor(self._scaler.transform(X), dtype=torch.float32).to(self._device)
 
@@ -161,7 +163,7 @@ class TennisPredictorMLP(TennisPredictorModel):
 
     def save(self) -> None:
         if not self._is_fitted or self._network is None:
-            raise RuntimeError("TennisPredictorMLP must be trained before calling save().")
+            raise RuntimeError(f"{self.instance_name} must be trained before calling save().")
 
         checkpoint = {
             "model_state_dict": self._network.state_dict(),

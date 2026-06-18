@@ -1,6 +1,6 @@
 requests
-notebook
-kagglehub
 pandas
 tabulate
 torch
+xgboost
+scikit-learn

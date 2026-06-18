@@ -1,0 +1,9 @@
+Evaluation Metrics for tennis_predictor_elo
+
+Log Loss: 0.626
+Brier Score: 0.219
+ROC AUC: 0.701
+Accuracy: 0.638
+F1 Score: 0.638
+Precision: 0.633
+Recall: 0.643

@@ -10,11 +10,11 @@ ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent / "artifacts"
 class TennisPredictorModel(ABC):
     MODEL_NAME = "tennis_predictor_model"
 
-    def __init__(self, parametric: bool, version: int = None) -> None:
+    def __init__(self, trainable: bool, version: int = None) -> None:
         model_artifacts_dir = ARTIFACTS_DIR / self.MODEL_NAME
         model_artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-        if parametric:
+        if trainable:
             if version:
                 assert (model_artifacts_dir / f"v{version}").exists(), f"Version {version} for {self.MODEL_NAME} does not exist."
                 self.version = version

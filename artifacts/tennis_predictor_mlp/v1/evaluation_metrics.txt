@@ -1,0 +1,9 @@
+Evaluation Metrics for tennis_predictor_mlp_v1
+
+Log Loss: 0.615
+Brier Score: 0.214
+ROC AUC: 0.717
+Accuracy: 0.654
+F1 Score: 0.659
+Precision: 0.656
+Recall: 0.662
