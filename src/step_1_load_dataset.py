@@ -15,12 +15,16 @@ def download_dataset(year_count: int = 20) -> None:
         for year in range(date.today().year - year_count, date.today().year + 1):
             url = f"{BASE_URL}/atp_matches_{year}.csv"
             response = requests.get(url)
+            if response.status_code != 200:
+                raise Exception(f"Status code: {response.status_code}")
             filepath = DATA_DIR / f"atp_matches_{year}.csv"
             filepath.write_bytes(response.content)
 
         # download schema file for information about the columns
         url = f"{BASE_URL}/matches_data_dictionary.txt"
         response = requests.get(url)
+        if response.status_code != 200:
+            raise Exception(f"Status code: {response.status_code}")
         filepath = DATA_DIR / "matches_data_dictionary.txt"
         filepath.write_bytes(response.content)
 
