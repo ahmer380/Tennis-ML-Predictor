@@ -9,9 +9,10 @@ The primary goal is to build an accurate, interpretable, and extensible predicti
 ## This repository includes
 The full end-to-end tennis prediction pipeline:
 
-- **Data preprocessing & cleaning**
-  - Raw match data ingestion
-  - Feature-safe chronological processing
+- **Live data fetching, preprocessing & cleaning**
+  - Live data sourcing from [Jeff Sackmann’s ATP dataset](https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master)
+  - Coverage of 60,000+ ATP matches across 20+ years of professional tennis history
+  - Feature-safe chronological processing to prevent data leakage
 
 - **Feature engineering**
   - Elo rating system (global + surface-specific)
@@ -86,26 +87,26 @@ Each player is assigned a dynamic rating that updates after every match based on
 
 **Elo update formula:**
 
-\[
+$$
 R_{new} = R_{old} + K \cdot (S - E)
-\]
+$$
 
 Where:
-- \(R_{old}\): current rating  
-- \(K\): learning rate / volatility constant  
-- \(S\): actual match result (1 = win, 0 = loss)  
-- \(E\): expected win probability based on rating difference  
+- $R_{old}$: current rating  
+- $K$: K-Factor / volatility constant  
+- $S$: actual match result (1 = win, 0 = loss)  
+- $E$: expected win probability based on rating difference  
 
 Expected score:
 
-\[
+$$
 E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}
-\]
+$$
 
 This model provides a strong baseline and forms the foundation for more complex feature engineering.
-![Career Elo Trajectory of Rafael Nadal](artifacts/nadal_career_elo_trajectory.png)
 
----
+![Career Elo Trajectory of Rafael Nadal](artifacts/nadal_career_elo_trajectory.png)
+*Career Elo trajectory of Rafael Nadal over his professional career, showing long-term performance evolution and surface dominance.*
 
 ### TennisPredictorMLP
 
@@ -116,8 +117,6 @@ A feedforward neural network trained on engineered match features.
 - Output: probability of Player A winning
 
 The MLP is capable of learning nonlinear interactions between features (e.g., how fatigue and surface interact), but can be sensitive to feature scaling and data distribution.
-
----
 
 ### TennisPredictorXGBoost
 
@@ -132,8 +131,15 @@ This is currently my **preferred model** for this project due to its:
 
 One of its biggest advantages is interpretability:we can directly evaluate which features contribute most to predictive power.
 
-📊 *(Insert feature importance snapshot here)*
+![Top 10 Feature Importance](artifacts/tennis_predictor_xgboost/v1/top_10_feature_importance.png)
+*Top 10 feature importances from the trained XGBoost model, showing the most influential variables used in match outcome prediction.*
 
+## Acknowledgements
+
+Many thanks to **Jeff Sackmann** and the wider **Tennis Abstract** community for their ongoing efforts in providing and maintaining publicly available tennis datasets.
+
+- [Jeff Sackmann’s ATP dataset](https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master)
+- https://www.tennisabstract.com/
 
 ## Tennis ML Predictor API
 Coming soon!

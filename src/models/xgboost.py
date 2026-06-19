@@ -1,7 +1,8 @@
-from typing import Optional, Self
+from typing import Self
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, log_loss, brier_score_loss
 
@@ -91,7 +92,7 @@ class TennisPredictorXGBoost(TennisPredictorModel):
         return model_instance
 
     def log_feature_importance(self, feature_names: list[str]) -> None:
-        """Log the feature importance of the trained XGBoost model to a text file."""
+        """Log feature importance of the trained XGBoost model as a bar chart image."""
 
         if not self._is_fitted:
             raise RuntimeError(f"{self.instance_name} must be trained before calling log_feature_importance().")
@@ -105,17 +106,21 @@ class TennisPredictorXGBoost(TennisPredictorModel):
             zip(feature_names, importances),
             key=lambda x: x[1],
             reverse=True,
-        )
+        )[:10]
 
-        lines = []
-        lines.append(f"Feature Importance Report for {self.instance_name}\n")
-        lines.append(f"Total features: {len(feature_names)}\n")
-        for i, (name, score) in enumerate(feature_importance_pairs, 1):
-            lines.append(f"{i:03d}. {name:<40} {score:.6f}")
+        names, scores = zip(*feature_importance_pairs)
 
-        lines.append(f"\nSum of feature importances (expected value = 1.000000): {sum(importances):.6f}")
+        plt.figure(figsize=(10, 6))
+        plt.barh(names, scores)
+        plt.gca().invert_yaxis()
+        plt.xlabel("Feature Importance")
+        plt.title(f"Top 10 Feature Importances - {self.instance_name}")
 
-        output_path = self.instance_dir / "feature_importance.txt"
-        with open(output_path, "w") as f:
-            f.write("\n".join(lines))
-        print(f"Feature importance report saved to: {output_path}")
+        plt.tight_layout()
+
+        # Save as image instead of text
+        output_path = self.instance_dir / "top_10_feature_importance.png"
+        plt.savefig(output_path, dpi=300, bbox_inches="tight")
+        plt.close()
+
+        print(f"Feature importance plot saved to: {output_path}")
