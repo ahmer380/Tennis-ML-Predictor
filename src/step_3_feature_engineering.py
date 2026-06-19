@@ -159,9 +159,9 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         "player_A_global_win_pct_last_100": [],
         "player_B_global_win_pct_last_100": [],
         "global_win_pct_last_100_diff": [],
-        "player_A_surface_win_pct_last_10": [],
-        "player_B_surface_win_pct_last_10": [],
-        "surface_win_pct_last_10_diff": [],
+        "player_A_surface_win_pct_last_100": [],
+        "player_B_surface_win_pct_last_100": [],
+        "surface_win_pct_last_100_diff": [],
         "player_A_global_elo": [],
         "player_B_global_elo": [],
         "global_elo_diff": [],
@@ -274,12 +274,12 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
             player_a_global_win_pct_last_100 - player_b_global_win_pct_last_100
         )
 
-        player_a_surface_win_pct_last_10 = player_a_profile.get_recent_win_percentage(10, surface)
-        player_b_surface_win_pct_last_10 = player_b_profile.get_recent_win_percentage(10, surface)
-        features["player_A_surface_win_pct_last_10"].append(player_a_surface_win_pct_last_10)
-        features["player_B_surface_win_pct_last_10"].append(player_b_surface_win_pct_last_10)
-        features["surface_win_pct_last_10_diff"].append(
-            player_a_surface_win_pct_last_10 - player_b_surface_win_pct_last_10
+        player_a_surface_win_pct_last_100 = player_a_profile.get_recent_win_percentage(100, surface)
+        player_b_surface_win_pct_last_100 = player_b_profile.get_recent_win_percentage(100, surface)
+        features["player_A_surface_win_pct_last_100"].append(player_a_surface_win_pct_last_100)
+        features["player_B_surface_win_pct_last_100"].append(player_b_surface_win_pct_last_100)
+        features["surface_win_pct_last_100_diff"].append(
+            player_a_surface_win_pct_last_100 - player_b_surface_win_pct_last_100
         )
 
         # Compute Elo features
