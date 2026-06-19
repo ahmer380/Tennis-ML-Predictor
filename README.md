@@ -116,7 +116,7 @@ A feedforward neural network trained on engineered match features.
 - Architecture: fully connected layers with nonlinear activations
 - Output: probability of Player A winning
 
-The MLP is capable of learning nonlinear interactions between features (e.g., how fatigue and surface interact), but can be sensitive to feature scaling and data distribution.
+The MLP is capable of learning nonlinear interactions between features (e.g. how fatigue and surface interact), but can be sensitive to feature scaling and data distribution.
 
 ### TennisPredictorXGBoost
 
