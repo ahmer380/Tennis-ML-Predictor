@@ -118,11 +118,30 @@ def predict_match(
     best_of: int,
 ) -> float:
     """Predict the probability of Player A winning against Player B."""
+    win_probability = (
+        _predict(model, player_a_profile, player_b_profile, surface, best_of)
+        + (1 - _predict(model, player_b_profile, player_a_profile, surface, best_of))
+    ) / 2  # Average the predictions across both directions (A vs B and B vs A) to account for potential asymmetry in the model
 
-    assert surface in ["Hard", "Clay", "Grass"], "Surface must be one of 'hard', 'clay', or 'grass'"
-    assert best_of in [3, 5], "Best of must be either 3 or 5"
+    print("=" * 50)
+    print(f"Win probability according to {model.instance_name}:")
+    print(f"{player_a_profile.name}: {win_probability:.2%}")
+    print(f"{player_b_profile.name}: {1 - win_probability:.2%}")
+    print("=" * 50)
+    print()
 
-    # Create a DataFrame with the features for the match
+    return win_probability
+
+
+def _predict(
+    model: TennisPredictorModel,
+    player_a_profile: PlayerProfile,
+    player_b_profile: PlayerProfile,
+    surface: str,
+    best_of: int,
+) -> float:
+    """Private function to predict the probability of Player A winning against Player B in a single direction (A vs B)."""
+
     feature_vector = {
         # Ranking
         "player_A_rank": player_a_profile.rank,
@@ -228,15 +247,5 @@ def predict_match(
         "player_A_win"
     }, "Feature vector keys do not match expected features"
 
-    # print("Feature vector for the match:")
-    # for feature, value in feature_vector.items():
-    #     print(f"  {feature}: {value}")
-
-    # Predict the probability of Player A winning
     win_probability = model.predict(pd.DataFrame([feature_vector]))[0]
-
-    print(f"Win probability according to {model.instance_name}:")
-    print(f"{player_a_profile.name}: {win_probability:.2%}")
-    print(f"{player_b_profile.name}: {1 - win_probability:.2%}")
-
     return win_probability
