@@ -16,6 +16,8 @@ from sklearn.metrics import (
 )
 
 from src.models.model import TennisPredictorModel
+from src.step_3_feature_engineering import PlayerProfile
+from src.step_4_split_dataset import FINALISED_ML_FEATURES
 
 
 def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray) -> None:
@@ -106,3 +108,135 @@ def evaluate_model(
         print(f"{model.instance_dir}/evaluation_metrics.txt")
     print()
     print("=" * 50)
+
+
+def predict_match(
+    model: TennisPredictorModel,
+    player_a_profile: PlayerProfile,
+    player_b_profile: PlayerProfile,
+    surface: str,
+    best_of: int,
+) -> float:
+    """Predict the probability of Player A winning against Player B."""
+
+    assert surface in ["Hard", "Clay", "Grass"], "Surface must be one of 'hard', 'clay', or 'grass'"
+    assert best_of in [3, 5], "Best of must be either 3 or 5"
+
+    # Create a DataFrame with the features for the match
+    feature_vector = {
+        # Ranking
+        "player_A_rank": player_a_profile.rank,
+        "player_B_rank": player_b_profile.rank,
+        "rank_diff": player_a_profile.rank - player_b_profile.rank,
+        "player_A_rank_points": player_a_profile.rank_points,
+        "player_B_rank_points": player_b_profile.rank_points,
+        "rank_points_diff": player_a_profile.rank_points - player_b_profile.rank_points,
+        # Experience
+        "player_A_global_matches_played": player_a_profile.get_matches_played("global"),
+        "player_B_global_matches_played": player_b_profile.get_matches_played("global"),
+        "global_matches_played_diff": player_a_profile.get_matches_played("global")
+        - player_b_profile.get_matches_played("global"),
+        "player_A_surface_matches_played": player_a_profile.get_matches_played(surface),
+        "player_B_surface_matches_played": player_b_profile.get_matches_played(surface),
+        "surface_matches_played_diff": player_a_profile.get_matches_played(surface)
+        - player_b_profile.get_matches_played(surface),
+        # Elo
+        "player_A_global_elo": player_a_profile.elos["global"],
+        "player_B_global_elo": player_b_profile.elos["global"],
+        "global_elo_diff": player_a_profile.elos["global"] - player_b_profile.elos["global"],
+        "player_A_surface_elo": player_a_profile.elos[surface],
+        "player_B_surface_elo": player_b_profile.elos[surface],
+        "surface_elo_diff": player_a_profile.elos[surface] - player_b_profile.elos[surface],
+        # Form
+        "player_A_global_win_pct_last_10": player_a_profile.get_recent_win_percentage(10, "global"),
+        "player_B_global_win_pct_last_10": player_b_profile.get_recent_win_percentage(10, "global"),
+        "global_win_pct_last_10_diff": player_a_profile.get_recent_win_percentage(10, "global")
+        - player_b_profile.get_recent_win_percentage(10, "global"),
+        "player_A_global_win_pct_last_25": player_a_profile.get_recent_win_percentage(25, "global"),
+        "player_B_global_win_pct_last_25": player_b_profile.get_recent_win_percentage(25, "global"),
+        "global_win_pct_last_25_diff": player_a_profile.get_recent_win_percentage(25, "global")
+        - player_b_profile.get_recent_win_percentage(25, "global"),
+        "player_A_global_win_pct_last_50": player_a_profile.get_recent_win_percentage(50, "global"),
+        "player_B_global_win_pct_last_50": player_b_profile.get_recent_win_percentage(50, "global"),
+        "global_win_pct_last_50_diff": player_a_profile.get_recent_win_percentage(50, "global")
+        - player_b_profile.get_recent_win_percentage(50, "global"),
+        "player_A_global_win_pct_last_100": player_a_profile.get_recent_win_percentage(100, "global"),
+        "player_B_global_win_pct_last_100": player_b_profile.get_recent_win_percentage(100, "global"),
+        "global_win_pct_last_100_diff": player_a_profile.get_recent_win_percentage(100, "global")
+        - player_b_profile.get_recent_win_percentage(100, "global"),
+        "player_A_surface_win_pct_last_100": player_a_profile.get_recent_win_percentage(100, surface),
+        "player_B_surface_win_pct_last_100": player_b_profile.get_recent_win_percentage(100, surface),
+        "surface_win_pct_last_100_diff": player_a_profile.get_recent_win_percentage(100, surface)
+        - player_b_profile.get_recent_win_percentage(100, surface),
+        # Head-to-head
+        "player_A_h2h_wins": player_a_profile.get_h2h_wins(player_b_profile.id),
+        "player_B_h2h_wins": player_b_profile.get_h2h_wins(player_a_profile.id),
+        "h2h_diff": player_a_profile.get_h2h_wins(player_b_profile.id)
+        - player_b_profile.get_h2h_wins(player_a_profile.id),
+        # Game stats
+        "player_A_ace_pct": player_a_profile.get_recent_game_stat_average("p_ace", 100, 0.08),
+        "player_B_ace_pct": player_b_profile.get_recent_game_stat_average("p_ace", 100, 0.08),
+        "ace_pct_diff": player_a_profile.get_recent_game_stat_average("p_ace", 100, 0.08)
+        - player_b_profile.get_recent_game_stat_average("p_ace", 100, 0.08),
+        "player_A_df_pct": player_a_profile.get_recent_game_stat_average("p_df", 100, 0.05),
+        "player_B_df_pct": player_b_profile.get_recent_game_stat_average("p_df", 100, 0.05),
+        "df_pct_diff": player_a_profile.get_recent_game_stat_average("p_df", 100, 0.05)
+        - player_b_profile.get_recent_game_stat_average("p_df", 100, 0.05),
+        "player_A_1st_in_pct": player_a_profile.get_recent_game_stat_average("p_1st_in", 100, 0.5),
+        "player_B_1st_in_pct": player_b_profile.get_recent_game_stat_average("p_1st_in", 100, 0.5),
+        "1st_in_pct_diff": player_a_profile.get_recent_game_stat_average("p_1st_in", 100, 0.5)
+        - player_b_profile.get_recent_game_stat_average("p_1st_in", 100, 0.5),
+        "player_A_1st_won_pct": player_a_profile.get_recent_game_stat_average("p_1st_won", 100, 0.5),
+        "player_B_1st_won_pct": player_b_profile.get_recent_game_stat_average("p_1st_won", 100, 0.5),
+        "1st_won_pct_diff": player_a_profile.get_recent_game_stat_average("p_1st_won", 100, 0.5)
+        - player_b_profile.get_recent_game_stat_average("p_1st_won", 100, 0.5),
+        "player_A_2nd_won_pct": player_a_profile.get_recent_game_stat_average("p_2nd_won", 100, 0.5),
+        "player_B_2nd_won_pct": player_b_profile.get_recent_game_stat_average("p_2nd_won", 100, 0.5),
+        "2nd_won_pct_diff": player_a_profile.get_recent_game_stat_average("p_2nd_won", 100, 0.5)
+        - player_b_profile.get_recent_game_stat_average("p_2nd_won", 100, 0.5),
+        "player_A_bp_saved_pct": player_a_profile.get_recent_game_stat_average("p_bp_saved", 100, 0.5),
+        "player_B_bp_saved_pct": player_b_profile.get_recent_game_stat_average("p_bp_saved", 100, 0.5),
+        "bp_saved_pct_diff": player_a_profile.get_recent_game_stat_average("p_bp_saved", 100, 0.5)
+        - player_b_profile.get_recent_game_stat_average("p_bp_saved", 100, 0.5),
+        "player_A_rp_won_pct": player_a_profile.get_recent_game_stat_average("p_rp_won", 100, 0.5),
+        "player_B_rp_won_pct": player_b_profile.get_recent_game_stat_average("p_rp_won", 100, 0.5),
+        "rp_won_pct_diff": player_a_profile.get_recent_game_stat_average("p_rp_won", 100, 0.5)
+        - player_b_profile.get_recent_game_stat_average("p_rp_won", 100, 0.5),
+        "player_A_bp_won_pct": player_a_profile.get_recent_game_stat_average("p_bp_won", 100, 0.5),
+        "player_B_bp_won_pct": player_b_profile.get_recent_game_stat_average("p_bp_won", 100, 0.5),
+        "bp_won_pct_diff": player_a_profile.get_recent_game_stat_average("p_bp_won", 100, 0.5)
+        - player_b_profile.get_recent_game_stat_average("p_bp_won", 100, 0.5),
+        # Physical
+        "player_A_age": player_a_profile.age,
+        "player_B_age": player_b_profile.age,
+        "age_diff": player_a_profile.age - player_b_profile.age,
+        "player_A_ht": player_a_profile.ht,
+        "player_B_ht": player_b_profile.ht,
+        "ht_diff": player_a_profile.ht - player_b_profile.ht,
+        # Tournament fatigue
+        "player_A_tournament_minutes": 0,
+        "player_B_tournament_minutes": 0,
+        "tournament_minutes_diff": 0,
+        # Match context
+        "best_of_5": 1 if best_of == 5 else 0,
+        "hard_surface": 1 if surface == "Hard" else 0,
+        "clay_surface": 1 if surface == "Clay" else 0,
+        "grass_surface": 1 if surface == "Grass" else 0,
+    }
+
+    assert set(feature_vector.keys()) == set(FINALISED_ML_FEATURES) - {
+        "player_A_win"
+    }, "Feature vector keys do not match expected features"
+
+    # print("Feature vector for the match:")
+    # for feature, value in feature_vector.items():
+    #     print(f"  {feature}: {value}")
+
+    # Predict the probability of Player A winning
+    win_probability = model.predict(pd.DataFrame([feature_vector]))[0]
+
+    print(f"Win probability according to {model.instance_name}:")
+    print(f"{player_a_profile.name}: {win_probability:.2%}")
+    print(f"{player_b_profile.name}: {1 - win_probability:.2%}")
+
+    return win_probability

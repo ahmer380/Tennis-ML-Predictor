@@ -6,6 +6,7 @@ from src.step_1_load_dataset import download_dataset, load_dataset
 from src.step_2_preprocess_data import preprocess_matches, audit_dataset
 from src.step_3_feature_engineering import (
     engineer_features,
+    get_player_profile_by_name,
     audit_player_profiles,
     audit_player_h2h,
     audit_match,
@@ -13,7 +14,7 @@ from src.step_3_feature_engineering import (
     plot_player_career_elo_trajectory,
 )
 from src.step_4_split_dataset import split_dataset
-from src.step_5_evaluate_model import evaluate_model
+from src.step_5_evaluate_model import evaluate_model, predict_match
 
 if __name__ == "__main__":
     print("Downloading dataset...\n")
@@ -48,9 +49,24 @@ if __name__ == "__main__":
 
     print("\nEvaluating model...\n")
     evaluate_model(model, X_test, y_test, save_data=False)
-
-    # Maybe quickly evaluate model using a grand slam as a test set?
-
-    # TODO: NO MORE MODEL TUNING, just FASTAPI time!
-    # TODO: Add predict endpoint which takes two players, surface, date, best of, and return probability of player A winning
-
+    # predict_match(
+    #     model=model,
+    #     player_a_profile=get_player_profile_by_name(player_profiles, "Carlos Alcaraz"),
+    #     player_b_profile=get_player_profile_by_name(player_profiles, "Novak Djokovic"),
+    #     surface="Hard",
+    #     best_of=5,
+    # )
+    predict_match(
+        model=model,
+        player_a_profile=get_player_profile_by_name(player_profiles, "Carlos Alcaraz"),
+        player_b_profile=get_player_profile_by_name(player_profiles, "Jannik Sinner"),
+        surface="Hard",
+        best_of=3,
+    )
+    # predict_match(
+    #     model=model,
+    #     player_a_profile=get_player_profile_by_name(player_profiles, "Jannik Sinner"),
+    #     player_b_profile=get_player_profile_by_name(player_profiles, "Kei Nishikori"),
+    #     surface="Grass",
+    #     best_of=3,
+    # )

@@ -52,6 +52,10 @@ class PlayerProfile:
         """Return the number of matches played on a given surface."""
         return len(self.match_history[surface])
 
+    def get_h2h_wins(self, opponent_id: int) -> int:
+        """Return the number of head-to-head wins against a specific opponent."""
+        return self.h2h_records[opponent_id].count(True)
+
     def get_recent_win_percentage(self, num_matches: int, surface: str = "global") -> float:
         """Return the win percentage over the last `num_matches` on a given surface."""
         recent_matches = self.match_history[surface][-min(num_matches, len(self.match_history[surface])) :]
@@ -292,8 +296,8 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         features["surface_elo_diff"].append(player_a_profile.elos[surface] - player_b_profile.elos[surface])
 
         # Compute head-to-head features
-        h2h_wins_a = player_a_profile.h2h_records[row["player_B_id"]].count(True)
-        h2h_wins_b = player_b_profile.h2h_records[row["player_A_id"]].count(True)
+        h2h_wins_a = player_a_profile.get_h2h_wins(row["player_B_id"])
+        h2h_wins_b = player_b_profile.get_h2h_wins(row["player_A_id"])
         features["player_A_h2h_wins"].append(h2h_wins_a)
         features["player_B_h2h_wins"].append(h2h_wins_b)
         features["h2h_diff"].append(h2h_wins_a - h2h_wins_b)
@@ -426,6 +430,14 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
             )
 
     return (dfc.assign(**features), player_profiles)
+
+def get_player_profile_by_name(player_profiles: Dict[int, PlayerProfile], player_name: str) -> PlayerProfile:
+    """Retrieve a PlayerProfile object by player name."""
+    for profile in player_profiles.values():
+        if profile.name == player_name:
+            return profile
+        
+    raise ValueError(f"Player '{player_name}' not found in player profiles.")
 
 
 def audit_player_profiles(player_profiles: Dict[int, PlayerProfile]) -> None:
