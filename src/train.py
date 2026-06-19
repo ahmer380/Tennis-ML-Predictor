@@ -19,7 +19,7 @@ from src.step_4_split_dataset import split_dataset
 from src.step_5_evaluate_model import evaluate_model, predict_match
 
 
-def train(model: str):
+def train(model_type: str):
     print("Downloading dataset...\n")
     download_dataset()
     df = load_dataset()
@@ -44,11 +44,11 @@ def train(model: str):
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
     print("\nTraining model...\n")
-    if model == "elo":
+    if model_type == "elo":
         model = TennisPredictorElo()
-    elif model == "mlp":
+    elif model_type == "mlp":
         model = TennisPredictorMLP()
-    elif model == "xgboost":
+    elif model_type == "xgboost":
         model = TennisPredictorXGBoost()
     model.learn(X_train, y_train, X_validation, y_validation)
     model.save()
@@ -81,8 +81,12 @@ def train(model: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a tennis match predictor model.")
     parser.add_argument(
-        "--model", type=str, default="mlp", choices=["elo", "mlp", "xgboost"], help="The model to train (default: mlp)"
+        "--model",
+        type=str,
+        default="xgboost",
+        choices=["elo", "mlp", "xgboost"],
+        help="The model to train (default: xgboost)",
     )
     args = parser.parse_args()
 
-    train(model=args.model)
+    train(model_type=args.model)

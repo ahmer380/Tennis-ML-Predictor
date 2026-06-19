@@ -4,3 +4,4 @@ tabulate
 torch
 xgboost
 scikit-learn
+matplotlib
