@@ -10,7 +10,7 @@ The primary goal is to build an accurate, interpretable, and extensible predicti
 The full end-to-end tennis prediction pipeline:
 
 - **Live data fetching, preprocessing & cleaning**
-  - Live data sourcing from [Jeff Sackmann’s ATP dataset](https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master)
+  - Live data sourcing from [Jeff Sackmann’s ATP dataset](https://github.com/JeffSackmann/tennis_atp)
   - Coverage of 60,000+ ATP matches across 20+ years of professional tennis history
   - Feature-safe chronological processing to prevent data leakage
 
@@ -129,7 +129,7 @@ This is currently my **preferred model** for this project due to its:
 - Built-in handling of nonlinear feature interactions
 - Interpretability via feature importance analysis
 
-One of its biggest advantages is interpretability:we can directly evaluate which features contribute most to predictive power.
+One of its biggest advantages is interpretability: we can directly evaluate which features contribute most to predictive power.
 
 ![Top 10 Feature Importance](artifacts/tennis_predictor_xgboost/v1/top_10_feature_importance.png)
 *Top 10 feature importances from the trained XGBoost model, showing the most influential variables used in match outcome prediction.*
@@ -138,7 +138,7 @@ One of its biggest advantages is interpretability:we can directly evaluate which
 
 Many thanks to **Jeff Sackmann** and the wider **Tennis Abstract** community for their ongoing efforts in providing and maintaining publicly available tennis datasets.
 
-- [Jeff Sackmann’s ATP dataset](https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master)
+- [Jeff Sackmann’s ATP dataset](https://github.com/JeffSackmann/tennis_atp)
 - https://www.tennisabstract.com/
 
 ## Tennis ML Predictor API
