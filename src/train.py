@@ -19,7 +19,7 @@ from src.step_4_split_dataset import split_dataset
 from src.step_5_evaluate_model import evaluate_model, predict_match
 
 
-def train(model_type: str):
+def train(model: str):
     print("Downloading dataset...\n")
     download_dataset()
     df = load_dataset()
@@ -44,17 +44,17 @@ def train(model_type: str):
     # audit_dataset(X_test.assign(player_A_win=y_test))
 
     print("\nTraining model...\n")
-    if model_type == "elo":
+    if model == "elo":
         model = TennisPredictorElo()
-    elif model_type == "mlp":
+    elif model == "mlp":
         model = TennisPredictorMLP()
-    elif model_type == "xgboost":
+    elif model == "xgboost":
         model = TennisPredictorXGBoost()
     model.learn(X_train, y_train, X_validation, y_validation)
     model.save()
 
     print("\nEvaluating model...\n")
-    evaluate_model(model, X_test, y_test, save_data=False)
+    evaluate_model(model, X_test, y_test, save_data=True)
     predict_match(
         model=model,
         player_a_profile=get_player_profile_by_name(player_profiles, "Novak Djokovic"),
@@ -80,7 +80,9 @@ def train(model_type: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a tennis match predictor model.")
-    parser.add_argument("--model", type=str, default="mlp", choices=["elo", "mlp", "xgboost"], help="The model to train (default: mlp)")
+    parser.add_argument(
+        "--model", type=str, default="mlp", choices=["elo", "mlp", "xgboost"], help="The model to train (default: mlp)"
+    )
     args = parser.parse_args()
 
-    train(model_type=args.model)
+    train(model=args.model)
