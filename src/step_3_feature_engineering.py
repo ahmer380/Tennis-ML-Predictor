@@ -10,6 +10,14 @@ BASE_ELO = 1500.0
 
 
 @dataclass
+class _Match:
+    """Class to hold match information"""
+
+    date: pd.Timestamp
+    won: bool
+
+
+@dataclass
 class PlayerProfile:
     """Class to hold player profile information, including Elo ratings, match history, and game stats."""
 
@@ -24,7 +32,7 @@ class PlayerProfile:
     rank_points: int = None
 
     # Experience and form
-    match_history: Dict[str, List[bool]] = field(default_factory=lambda: defaultdict(list))
+    match_history: Dict[str, List[_Match]] = field(default_factory=lambda: defaultdict(list))
 
     # Elo
     elos: Dict[str, float] = field(default_factory=lambda: defaultdict(lambda: BASE_ELO))
@@ -48,9 +56,19 @@ class PlayerProfile:
     last_tournament_played_date: pd.Timestamp = None
     current_tournament_minutes_played: int = 0
 
-    def get_matches_played(self, surface: str = "global") -> int:
-        """Return the number of matches played on a given surface."""
-        return len(self.match_history[surface])
+    def get_matches_played(self, surface: str = "global", from_date: pd.Timestamp = None) -> int:
+        """Return the number of matches played on a given surface from a specific date."""
+        if not from_date:
+            return len(self.match_history[surface])
+
+        matches_played = 0
+        for match in range(len(self.match_history[surface]) - 1, -1, -1):
+            if self.match_history[surface][match].date >= from_date:
+                matches_played += 1
+            else:
+                break
+
+        return matches_played
 
     def get_h2h_wins(self, opponent_id: int) -> int:
         """Return the number of head-to-head wins against a specific opponent."""
@@ -59,7 +77,7 @@ class PlayerProfile:
     def get_recent_win_percentage(self, num_matches: int, surface: str = "global") -> float:
         """Return the win percentage over the last `num_matches` on a given surface."""
         recent_matches = self.match_history[surface][-min(num_matches, len(self.match_history[surface])) :]
-        return sum(recent_matches) / len(recent_matches) if recent_matches else 0.5
+        return sum(match.won for match in recent_matches) / len(recent_matches) if recent_matches else 0.5
 
     def get_recent_game_stat_average(self, game_stat: str, num_matches: int = 100, default: float = 0.5) -> float:
         """Return the average of a game stat over the last `num_matches`."""
@@ -151,6 +169,9 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         "player_A_surface_matches_played": [],
         "player_B_surface_matches_played": [],
         "surface_matches_played_diff": [],
+        "player_A_global_matches_played_last_365": [],
+        "player_B_global_matches_played_last_365": [],
+        "global_matches_played_last_365_diff": [],
         "player_A_global_win_pct_last_10": [],
         "player_B_global_win_pct_last_10": [],
         "global_win_pct_last_10_diff": [],
@@ -243,6 +264,15 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         features["player_B_surface_matches_played"].append(player_b_profile.get_matches_played(surface))
         features["surface_matches_played_diff"].append(
             player_a_profile.get_matches_played(surface) - player_b_profile.get_matches_played(surface)
+        )
+
+        one_year_ago = tourney_date - pd.DateOffset(years=1)
+        player_a_global_matches_played_last_365 = player_a_profile.get_matches_played("global", from_date=one_year_ago)
+        player_b_global_matches_played_last_365 = player_b_profile.get_matches_played("global", from_date=one_year_ago)
+        features["player_A_global_matches_played_last_365"].append(player_a_global_matches_played_last_365)
+        features["player_B_global_matches_played_last_365"].append(player_b_global_matches_played_last_365)
+        features["global_matches_played_last_365_diff"].append(
+            player_a_global_matches_played_last_365 - player_b_global_matches_played_last_365
         )
 
         # Compute form features
@@ -393,10 +423,10 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         player_a_profile.current_tournament_minutes_played += row["minutes"]
         player_b_profile.current_tournament_minutes_played += row["minutes"]
 
-        player_a_profile.match_history["global"].append(row["player_A_win"] == 1)
-        player_b_profile.match_history["global"].append(row["player_A_win"] == 0)
-        player_a_profile.match_history[surface].append(row["player_A_win"] == 1)
-        player_b_profile.match_history[surface].append(row["player_A_win"] == 0)
+        player_a_profile.match_history["global"].append(_Match(date=tourney_date, won=row["player_A_win"] == 1))
+        player_b_profile.match_history["global"].append(_Match(date=tourney_date, won=row["player_A_win"] == 0))
+        player_a_profile.match_history[surface].append(_Match(date=tourney_date, won=row["player_A_win"] == 1))
+        player_b_profile.match_history[surface].append(_Match(date=tourney_date, won=row["player_A_win"] == 0))
 
         player_a_profile.p_ace.append(row["player_A_ace"] / row["player_A_svpt"])
         player_b_profile.p_ace.append(row["player_B_ace"] / row["player_B_svpt"])
@@ -431,12 +461,13 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
 
     return (dfc.assign(**features), player_profiles)
 
+
 def get_player_profile_by_name(player_profiles: Dict[int, PlayerProfile], player_name: str) -> PlayerProfile:
     """Retrieve a PlayerProfile object by player name."""
     for profile in player_profiles.values():
         if profile.name == player_name:
             return profile
-        
+
     raise ValueError(f"Player '{player_name}' not found in player profiles.")
 
 
@@ -623,11 +654,25 @@ def plot_player_career_elo_trajectory(df_features: pd.DataFrame, player_name: st
     plt.figure(figsize=(12, 6))
     plt.plot([i for i in range(len(global_elo_dates))], global_elo_values, label="Global Elo", color="black")
     plt.axhline(y=global_elo_values.iloc[-1], color="black")
-    plt.plot([i for i in range(len(hard_elo_dates))], hard_elo_values, label="Hard Surface Elo", color="blue", linestyle="--")
+    plt.plot(
+        [i for i in range(len(hard_elo_dates))], hard_elo_values, label="Hard Surface Elo", color="blue", linestyle="--"
+    )
     plt.axhline(y=hard_elo_values.iloc[-1], color="blue", linestyle="--")
-    plt.plot([i for i in range(len(clay_elo_dates))], clay_elo_values, label="Clay Surface Elo", color="orange", linestyle="--")
+    plt.plot(
+        [i for i in range(len(clay_elo_dates))],
+        clay_elo_values,
+        label="Clay Surface Elo",
+        color="orange",
+        linestyle="--",
+    )
     plt.axhline(y=clay_elo_values.iloc[-1], color="orange", linestyle="--")
-    plt.plot([i for i in range(len(grass_elo_dates))], grass_elo_values, label="Grass Surface Elo", color="green", linestyle="--")
+    plt.plot(
+        [i for i in range(len(grass_elo_dates))],
+        grass_elo_values,
+        label="Grass Surface Elo",
+        color="green",
+        linestyle="--",
+    )
     plt.axhline(y=grass_elo_values.iloc[-1], color="green", linestyle="--")
     plt.title(f"Career Elo Trajectory of {player_name}")
     plt.xlabel("Match Number")

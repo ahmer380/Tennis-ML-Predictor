@@ -17,6 +17,9 @@ FINALISED_ML_FEATURES = [
     "player_A_surface_matches_played",
     "player_B_surface_matches_played",
     "surface_matches_played_diff",
+    "player_A_global_matches_played_last_365",
+    "player_B_global_matches_played_last_365",
+    "global_matches_played_last_365_diff",
     # Elo
     "player_A_global_elo",
     "player_B_global_elo",

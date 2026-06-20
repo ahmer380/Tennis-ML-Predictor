@@ -159,6 +159,16 @@ def _predict(
         "player_B_surface_matches_played": player_b_profile.get_matches_played(surface),
         "surface_matches_played_diff": player_a_profile.get_matches_played(surface)
         - player_b_profile.get_matches_played(surface),
+        "player_A_global_matches_played_last_365": player_a_profile.get_matches_played(
+            "global", pd.Timestamp.now() - pd.DateOffset(years=1)
+        ),
+        "player_B_global_matches_played_last_365": player_b_profile.get_matches_played(
+            "global", pd.Timestamp.now() - pd.DateOffset(years=1)
+        ),
+        "global_matches_played_last_365_diff": player_a_profile.get_matches_played(
+            "global", pd.Timestamp.now() - pd.DateOffset(years=1)
+        )
+        - player_b_profile.get_matches_played("global", pd.Timestamp.now() - pd.DateOffset(years=1)),
         # Elo
         "player_A_global_elo": player_a_profile.elos["global"],
         "player_B_global_elo": player_b_profile.elos["global"],
@@ -243,6 +253,7 @@ def _predict(
         "grass_surface": 1 if surface == "Grass" else 0,
     }
 
+    feature_vector = {k: v for k, v in feature_vector.items() if k in FINALISED_ML_FEATURES}
     assert set(feature_vector.keys()) == set(FINALISED_ML_FEATURES) - {
         "player_A_win"
     }, "Feature vector keys do not match expected features"
