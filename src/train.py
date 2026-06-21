@@ -4,8 +4,10 @@ from src.models.elo import TennisPredictorElo
 from src.models.mlp import TennisPredictorMLP
 from src.models.xgboost import TennisPredictorXGBoost
 
-from src.step_1_load_dataset import download_dataset, load_dataset
-from src.step_2_preprocess_data import preprocess_matches
+from src.data.download_dataset import download_dataset
+from src.data.load_dataset import load_dataset
+from src.data.preprocess_dataset import preprocess_dataset
+
 from src.step_3_feature_engineering import (
     engineer_features,
     get_player_profile_by_name,
@@ -24,12 +26,10 @@ from src.utils.plot import plot_player_career_elo_trajectory
 
 
 def train(model_type: str):
-    print("Downloading dataset...\n")
+    # Download, load, and preprocess the dataset
     download_dataset()
     df = load_dataset()
-
-    print("\nPreprocessing dataset...\n")
-    df_preprocessed = preprocess_matches(df)
+    df_preprocessed = preprocess_dataset(df)
     # audit_dataset(df_preprocessed)
 
     print("\nEngineering features...\n")

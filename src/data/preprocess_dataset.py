@@ -10,13 +10,10 @@ NOISY_COLUMNS = [
 ]
 
 
-def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
-    """Copy and clean the matches DataFrame into a symmetric player_A/player_B format.
+def preprocess_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    """Copy and clean the matches DataFrame into a symmetric player_A/player_B format."""
+    print("\nPreprocessing dataset...")
 
-    - Drops rows missing any values
-    - Converts winner/loser into player_A/player_B with a random 50/50 swap
-    - Returns cleaned DataFrame ready for ML (no feature engineering performed)
-    """
     dfc = df.copy()
     dfc = dfc.drop(columns=NOISY_COLUMNS)
     dfc = dfc.dropna()
