@@ -8,11 +8,12 @@ from src.data.download_dataset import download_dataset
 from src.data.load_dataset import load_dataset
 from src.data.preprocess_dataset import preprocess_dataset
 
+from src.feature.prepare_ml_dataset import prepare_ml_dataset
+
 from src.step_3_feature_engineering import (
     engineer_features,
     get_player_profile_by_name,
 )
-from src.step_4_split_dataset import split_dataset
 from src.step_5_evaluate_model import evaluate_model, predict_match
 
 from src.utils.audit import (
@@ -32,7 +33,7 @@ def train(model_type: str):
     df_preprocessed = preprocess_dataset(df)
     # audit_dataset(df_preprocessed)
 
-    print("\nEngineering features...\n")
+    print("\nEngineering features...")
     df_features, player_profiles = engineer_features(df_preprocessed)
     # audit_dataset(df_features)
     # audit_player_profiles(player_profiles)
@@ -41,8 +42,7 @@ def train(model_type: str):
     # audit_player_tournament_run(df_features, "Rafael Nadal", "US Open", 2019)
     # plot_player_career_elo_trajectory(df_features, "Rafael Nadal")
 
-    print("\nSplitting dataset...\n")
-    X_train, y_train, X_validation, y_validation, X_test, y_test = split_dataset(df_features)
+    X_train, y_train, X_validation, y_validation, X_test, y_test = prepare_ml_dataset(df_features)
     # audit_dataset(X_train.assign(player_A_win=y_train))
     # audit_dataset(X_validation.assign(player_A_win=y_validation))
     # audit_dataset(X_test.assign(player_A_win=y_test))

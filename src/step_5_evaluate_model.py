@@ -16,8 +16,10 @@ from sklearn.metrics import (
 )
 
 from src.models.model import TennisPredictorModel
+
+from src.feature.features import FINALISED_ML_FEATURES
+
 from src.step_3_feature_engineering import PlayerProfile
-from src.step_4_split_dataset import FINALISED_ML_FEATURES
 
 
 def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray) -> None:

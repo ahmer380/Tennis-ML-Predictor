@@ -22,7 +22,7 @@ The full end-to-end tennis prediction pipeline:
   - Serve / return performance indicators
 
 - **Model training pipeline**
-  - Unified training entry point (`src/train.py`)
+  - Unified training entry point (`src/pipelines/train.py`)
   - Configurable model selection (`elo`, `mlp`, `xgboost`)
   - Reproducible train/test pipeline
 
@@ -68,10 +68,10 @@ pip install -r requirements.txt
 
 ### Step 3: Train a model
 
-Training is implemented in `src/train.py`.
+Training is implemented in `src/pipelines/train.py`.
 
 ```bash
-python -m src.train
+python -m src.pipelines.train
 ```
 
 Supported executable parameters:
