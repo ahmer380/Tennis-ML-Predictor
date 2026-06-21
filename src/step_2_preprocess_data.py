@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
-from tabulate import tabulate
 
 # Columns that are noisy and not worth keeping (many missing values, or not useful for prediction)
 NOISY_COLUMNS = [
@@ -60,52 +58,3 @@ def preprocess_matches(df: pd.DataFrame) -> pd.DataFrame:
     dfc = dfc.reset_index(drop=True)
 
     return dfc
-
-
-def audit_dataset(df: pd.DataFrame) -> None:
-    """Summarise the preprocessed dataset."""
-    print(f"\nShape of dataset: {df.shape}\n")
-    if "player_A_win" in df.columns:
-        print(df["player_A_win"].value_counts(normalize=True))
-        print()
-
-    # Audit each column
-    summary_rows = []
-    for column_name in df.columns:
-        series = df[column_name]
-        summary_rows.append(
-            {
-                "name": column_name,
-                "data_type": str(series.dtype),
-                "minimum": series.min(),
-                "maximum": series.max(),
-                "missing_rows": int(series.isna().sum()),
-            }
-        )
-
-    print("Dataset columns summary:")
-    print(tabulate(summary_rows, headers="keys", tablefmt="github", showindex=False))
-
-    # Audit key categorical columns by grouping
-    for group_column, title in (
-        ("surface", "Surface"),
-        ("tourney_level", "Tourney level"),
-    ):
-        if group_column not in df.columns:
-            continue
-
-        grouped_rows = []
-
-        for value, group_df in df.groupby(group_column, dropna=False):
-            grouped_rows.append(
-                {
-                    "type": value,
-                    "total_rows": len(group_df),
-                    "missing_rows": group_df.isna().any(axis=1).sum(),
-                }
-            )
-
-        grouped_rows.sort(key=lambda row: (-row["total_rows"], str(row["type"])))
-
-        print(f"\n{title} summary:")
-        print(tabulate(grouped_rows, headers="keys", tablefmt="github", showindex=False))

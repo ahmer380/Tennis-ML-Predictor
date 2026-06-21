@@ -5,18 +5,22 @@ from src.models.mlp import TennisPredictorMLP
 from src.models.xgboost import TennisPredictorXGBoost
 
 from src.step_1_load_dataset import download_dataset, load_dataset
-from src.step_2_preprocess_data import preprocess_matches, audit_dataset
+from src.step_2_preprocess_data import preprocess_matches
 from src.step_3_feature_engineering import (
     engineer_features,
     get_player_profile_by_name,
+)
+from src.step_4_split_dataset import split_dataset
+from src.step_5_evaluate_model import evaluate_model, predict_match
+
+from src.utils.audit import (
+    audit_dataset,
     audit_player_profiles,
     audit_player_h2h,
     audit_match,
     audit_player_tournament_run,
-    plot_player_career_elo_trajectory,
 )
-from src.step_4_split_dataset import split_dataset
-from src.step_5_evaluate_model import evaluate_model, predict_match
+from src.utils.plot import plot_player_career_elo_trajectory
 
 
 def train(model_type: str):
