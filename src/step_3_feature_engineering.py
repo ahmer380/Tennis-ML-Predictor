@@ -4,7 +4,11 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 
+from src.feature.elo_rating_engine import EloRatingEngine
+
 BASE_ELO = 1500.0
+
+elo_engine = EloRatingEngine()
 
 
 @dataclass
@@ -81,60 +85,6 @@ class PlayerProfile:
         """Return the average of a game stat over the last `num_matches`."""
         recent_stats = getattr(self, game_stat)[-min(num_matches, len(getattr(self, game_stat))) :]
         return sum(recent_stats) / len(recent_stats) if recent_stats else default
-
-
-class EloRatingEngine:
-    def calculate_k_factor(self, matches_played: int, tourney_level: str) -> float:
-        """Calculate K-factor based on player experience and tournament level."""
-        MIN_K_FACTOR = 18.0
-        MAX_K_FACTOR = 40.0
-
-        k_factor = max(MIN_K_FACTOR, min(MAX_K_FACTOR, 400.0 / (matches_played + 1)))
-
-        tier_multipliers = {"G": 1.1, "M": 1.0, "F": 1.0, "A": 0.9, "C": 0.6}
-
-        return k_factor * tier_multipliers[tourney_level]
-
-    def calculate_expected_score(self, elo_a: float, elo_b: float) -> float:
-        """Calculate expected score for player A against player B."""
-        return 1.0 / (1.0 + 10 ** ((elo_b - elo_a) / 400.0))
-
-    def update_player_elos(
-        self,
-        player_a_profile: PlayerProfile,
-        player_b_profile: PlayerProfile,
-        surface: str,
-        tourney_level: str,
-        player_a_win: float,
-    ) -> None:
-        """Update player elos according to this formula: https://martiningram.github.io/elo-dynamic"""
-        # Update global elos
-        expected_score_a = self.calculate_expected_score(
-            player_a_profile.elos["global"], player_b_profile.elos["global"]
-        )
-        expected_score_b = 1 - expected_score_a
-        k_factor_a = self.calculate_k_factor(player_a_profile.get_matches_played("global"), tourney_level)
-        k_factor_b = self.calculate_k_factor(player_b_profile.get_matches_played("global"), tourney_level)
-        player_a_profile.elos["global"] = player_a_profile.elos["global"] + k_factor_a * (
-            player_a_win - expected_score_a
-        )
-        player_b_profile.elos["global"] = player_b_profile.elos["global"] + k_factor_b * (
-            (1.0 - player_a_win) - expected_score_b
-        )
-
-        # Update surface-specific elos
-        expected_score_a_surface = self.calculate_expected_score(
-            player_a_profile.elos[surface], player_b_profile.elos[surface]
-        )
-        expected_score_b_surface = 1 - expected_score_a_surface
-        surface_k_factor_a = self.calculate_k_factor(player_a_profile.get_matches_played(surface), tourney_level)
-        surface_k_factor_b = self.calculate_k_factor(player_b_profile.get_matches_played(surface), tourney_level)
-        player_a_profile.elos[surface] = player_a_profile.elos[surface] + surface_k_factor_a * (
-            player_a_win - expected_score_a_surface
-        )
-        player_b_profile.elos[surface] = player_b_profile.elos[surface] + surface_k_factor_b * (
-            (1.0 - player_a_win) - expected_score_b_surface
-        )
 
 
 def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerProfile]]:
@@ -394,12 +344,21 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         features["best_of_5"].append(1 if row["best_of"] == 5 else 0)
 
         # Post-match updates to player profiles (Elo updates happen after feature capture to prevent leakage)
-        elo_engine.update_player_elos(
-            player_a_profile=player_a_profile,
-            player_b_profile=player_b_profile,
-            surface=surface,
+        player_a_profile.elos["global"], player_b_profile.elos["global"] = elo_engine.update_ratings(
+            elo_a=player_a_profile.elos["global"],
+            elo_b=player_b_profile.elos["global"],
+            matches_played_a=player_a_profile.get_matches_played("global"),
+            matches_played_b=player_b_profile.get_matches_played("global"),
             tourney_level=row["tourney_level"],
-            player_a_win=row["player_A_win"],
+            score_a=row["player_A_win"],
+        )
+        player_a_profile.elos[surface], player_b_profile.elos[surface] = elo_engine.update_ratings(
+            elo_a=player_a_profile.elos[surface],
+            elo_b=player_b_profile.elos[surface],
+            matches_played_a=player_a_profile.get_matches_played(surface),
+            matches_played_b=player_b_profile.get_matches_played(surface),
+            tourney_level=row["tourney_level"],
+            score_a=row["player_A_win"],
         )
 
         player_a_profile.rank = row["player_A_rank"]
