@@ -1,101 +1,15 @@
-from collections import defaultdict
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import pandas as pd
 
 from src.feature.elo_rating_engine import EloRatingEngine
-
-BASE_ELO = 1500.0
+from src.feature.player_profile import PlayerProfile
 
 elo_engine = EloRatingEngine()
 
 
-@dataclass
-class _Match:
-    """Class to hold match information"""
-
-    date: pd.Timestamp
-    won: bool
-
-
-@dataclass
-class PlayerProfile:
-    """Class to hold player profile information, including Elo ratings, match history, and game stats."""
-
-    # Bio and physical
-    id: int
-    name: str
-    age: int = None
-    ht: int = None
-
-    # Ranking
-    rank: int = None
-    rank_points: int = None
-
-    # Experience and form
-    match_history: Dict[str, List[_Match]] = field(default_factory=lambda: defaultdict(list))
-
-    # Elo
-    elos: Dict[str, float] = field(default_factory=lambda: defaultdict(lambda: BASE_ELO))
-
-    # Head-to-head
-    h2h_records: Dict[int, List[bool]] = field(
-        default_factory=lambda: defaultdict(list)
-    )  # key=opponent_id, value=win/loss record
-
-    # Game stats
-    p_ace: List[float] = field(default_factory=list)
-    p_df: List[float] = field(default_factory=list)
-    p_1st_in: List[float] = field(default_factory=list)
-    p_1st_won: List[float] = field(default_factory=list)
-    p_2nd_won: List[float] = field(default_factory=list)
-    p_bp_saved: List[float] = field(default_factory=list)
-    p_rp_won: List[float] = field(default_factory=list)
-    p_bp_won: List[float] = field(default_factory=list)
-
-    # Fatigue
-    last_tournament_played_date: pd.Timestamp = None
-    current_tournament_minutes_played: int = 0
-
-    def get_matches_played(self, surface: str = "global", from_date: pd.Timestamp = None) -> int:
-        """Return the number of matches played on a given surface from a specific date."""
-        if not from_date:
-            return len(self.match_history[surface])
-
-        matches_played = 0
-        for match in range(len(self.match_history[surface]) - 1, -1, -1):
-            if self.match_history[surface][match].date >= from_date:
-                matches_played += 1
-            else:
-                break
-
-        return matches_played
-
-    def get_h2h_wins(self, opponent_id: int) -> int:
-        """Return the number of head-to-head wins against a specific opponent."""
-        return self.h2h_records[opponent_id].count(True)
-
-    def get_recent_win_percentage(self, num_matches: int, surface: str = "global") -> float:
-        """Return the win percentage over the last `num_matches` on a given surface."""
-        recent_matches = self.match_history[surface][-min(num_matches, len(self.match_history[surface])) :]
-        return sum(match.won for match in recent_matches) / len(recent_matches) if recent_matches else 0.5
-
-    def get_recent_game_stat_average(self, game_stat: str, num_matches: int = 100, default: float = 0.5) -> float:
-        """Return the average of a game stat over the last `num_matches`."""
-        recent_stats = getattr(self, game_stat)[-min(num_matches, len(getattr(self, game_stat))) :]
-        return sum(recent_stats) / len(recent_stats) if recent_stats else default
-
-
 def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerProfile]]:
-    """Chronological pass that produces pre-match features using only past information.
-
-    Additional features derived:
-    - rank_A, rank_B, rank_diff
-    - global_elo_A, global_elo_B, global_elo_diff
-    - surface_elo_A, surface_elo_B, surface_elo_diff
-    - h2h_wins_A, h2h_wins_B, h2h_total_matches, h2h_diff
-    """
+    """Chronological pass that produces pre-match features using only past information."""
     dfc = df.copy()
 
     # Sort matches chronologically (oldest to newest) to prevent future data leakage in feature engineering
@@ -187,13 +101,9 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         player_a_profile = player_profiles[row["player_A_id"]]
         player_b_profile = player_profiles[row["player_B_id"]]
 
-        surface = str(row["surface"])
-
-        tourney_date = pd.to_datetime(row["tourney_date"], format="%Y%m%d")
-        if tourney_date != player_a_profile.last_tournament_played_date:
-            player_a_profile.current_tournament_minutes_played = 0
-        if tourney_date != player_b_profile.last_tournament_played_date:
-            player_b_profile.current_tournament_minutes_played = 0
+        # Pre-match updates to player profiles (Elo updates occur externally)
+        player_a_profile.pre_match_update(row)
+        player_b_profile.pre_match_update(row)
 
         # Compute feature differences
         features["rank_diff"].append(row["player_A_rank"] - row["player_B_rank"])
@@ -208,13 +118,13 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
             player_a_profile.get_matches_played("global") - player_b_profile.get_matches_played("global")
         )
 
-        features["player_A_surface_matches_played"].append(player_a_profile.get_matches_played(surface))
-        features["player_B_surface_matches_played"].append(player_b_profile.get_matches_played(surface))
+        features["player_A_surface_matches_played"].append(player_a_profile.get_matches_played(row["surface"]))
+        features["player_B_surface_matches_played"].append(player_b_profile.get_matches_played(row["surface"]))
         features["surface_matches_played_diff"].append(
-            player_a_profile.get_matches_played(surface) - player_b_profile.get_matches_played(surface)
+            player_a_profile.get_matches_played(row["surface"]) - player_b_profile.get_matches_played(row["surface"])
         )
 
-        one_year_ago = tourney_date - pd.DateOffset(years=1)
+        one_year_ago = pd.to_datetime(row["tourney_date"], format="%Y%m%d") - pd.DateOffset(years=1)
         player_a_global_matches_played_last_365 = player_a_profile.get_matches_played("global", from_date=one_year_ago)
         player_b_global_matches_played_last_365 = player_b_profile.get_matches_played("global", from_date=one_year_ago)
         features["player_A_global_matches_played_last_365"].append(player_a_global_matches_played_last_365)
@@ -256,8 +166,8 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
             player_a_global_win_pct_last_100 - player_b_global_win_pct_last_100
         )
 
-        player_a_surface_win_pct_last_100 = player_a_profile.get_recent_win_percentage(100, surface)
-        player_b_surface_win_pct_last_100 = player_b_profile.get_recent_win_percentage(100, surface)
+        player_a_surface_win_pct_last_100 = player_a_profile.get_recent_win_percentage(100, row["surface"])
+        player_b_surface_win_pct_last_100 = player_b_profile.get_recent_win_percentage(100, row["surface"])
         features["player_A_surface_win_pct_last_100"].append(player_a_surface_win_pct_last_100)
         features["player_B_surface_win_pct_last_100"].append(player_b_surface_win_pct_last_100)
         features["surface_win_pct_last_100_diff"].append(
@@ -269,9 +179,11 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         features["player_B_global_elo"].append(player_b_profile.elos["global"])
         features["global_elo_diff"].append(player_a_profile.elos["global"] - player_b_profile.elos["global"])
 
-        features["player_A_surface_elo"].append(player_a_profile.elos[surface])
-        features["player_B_surface_elo"].append(player_b_profile.elos[surface])
-        features["surface_elo_diff"].append(player_a_profile.elos[surface] - player_b_profile.elos[surface])
+        features["player_A_surface_elo"].append(player_a_profile.elos[row["surface"]])
+        features["player_B_surface_elo"].append(player_b_profile.elos[row["surface"]])
+        features["surface_elo_diff"].append(
+            player_a_profile.elos[row["surface"]] - player_b_profile.elos[row["surface"]]
+        )
 
         # Compute head-to-head features
         h2h_wins_a = player_a_profile.get_h2h_wins(row["player_B_id"])
@@ -337,13 +249,16 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
         )
 
         # Compute match context features
-        features["hard_surface"].append(1 if surface == "Hard" else 0)
-        features["clay_surface"].append(1 if surface == "Clay" else 0)
-        features["grass_surface"].append(1 if surface == "Grass" else 0)
+        features["hard_surface"].append(1 if row["surface"] == "Hard" else 0)
+        features["clay_surface"].append(1 if row["surface"] == "Clay" else 0)
+        features["grass_surface"].append(1 if row["surface"] == "Grass" else 0)
 
         features["best_of_5"].append(1 if row["best_of"] == 5 else 0)
 
-        # Post-match updates to player profiles (Elo updates happen after feature capture to prevent leakage)
+        # Post-match updates to player profiles (Elo updates occur externally)
+        player_a_profile.post_match_update(row, "player_A")
+        player_b_profile.post_match_update(row, "player_B")
+
         player_a_profile.elos["global"], player_b_profile.elos["global"] = elo_engine.update_ratings(
             elo_a=player_a_profile.elos["global"],
             elo_b=player_b_profile.elos["global"],
@@ -352,69 +267,14 @@ def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerP
             tourney_level=row["tourney_level"],
             score_a=row["player_A_win"],
         )
-        player_a_profile.elos[surface], player_b_profile.elos[surface] = elo_engine.update_ratings(
-            elo_a=player_a_profile.elos[surface],
-            elo_b=player_b_profile.elos[surface],
-            matches_played_a=player_a_profile.get_matches_played(surface),
-            matches_played_b=player_b_profile.get_matches_played(surface),
+        player_a_profile.elos[row["surface"]], player_b_profile.elos[row["surface"]] = elo_engine.update_ratings(
+            elo_a=player_a_profile.elos[row["surface"]],
+            elo_b=player_b_profile.elos[row["surface"]],
+            matches_played_a=player_a_profile.get_matches_played(row["surface"]),
+            matches_played_b=player_b_profile.get_matches_played(row["surface"]),
             tourney_level=row["tourney_level"],
             score_a=row["player_A_win"],
         )
-
-        player_a_profile.rank = row["player_A_rank"]
-        player_b_profile.rank = row["player_B_rank"]
-        player_a_profile.rank_points = row["player_A_rank_points"]
-        player_b_profile.rank_points = row["player_B_rank_points"]
-
-        player_a_profile.age = row["player_A_age"]
-        player_b_profile.age = row["player_B_age"]
-        player_a_profile.ht = row["player_A_ht"]
-        player_b_profile.ht = row["player_B_ht"]
-
-        player_a_profile.h2h_records[row["player_B_id"]].append(row["player_A_win"] == 1)
-        player_b_profile.h2h_records[row["player_A_id"]].append(row["player_A_win"] == 0)
-
-        player_a_profile.last_tournament_played_date = tourney_date
-        player_b_profile.last_tournament_played_date = tourney_date
-
-        player_a_profile.current_tournament_minutes_played += row["minutes"]
-        player_b_profile.current_tournament_minutes_played += row["minutes"]
-
-        player_a_profile.match_history["global"].append(_Match(date=tourney_date, won=row["player_A_win"] == 1))
-        player_b_profile.match_history["global"].append(_Match(date=tourney_date, won=row["player_A_win"] == 0))
-        player_a_profile.match_history[surface].append(_Match(date=tourney_date, won=row["player_A_win"] == 1))
-        player_b_profile.match_history[surface].append(_Match(date=tourney_date, won=row["player_A_win"] == 0))
-
-        player_a_profile.p_ace.append(row["player_A_ace"] / row["player_A_svpt"])
-        player_b_profile.p_ace.append(row["player_B_ace"] / row["player_B_svpt"])
-        player_a_profile.p_df.append(row["player_A_df"] / row["player_A_svpt"])
-        player_b_profile.p_df.append(row["player_B_df"] / row["player_B_svpt"])
-        player_a_profile.p_1st_in.append(row["player_A_1stIn"] / row["player_A_svpt"])
-        player_b_profile.p_1st_in.append(row["player_B_1stIn"] / row["player_B_svpt"])
-        player_a_profile.p_1st_won.append(row["player_A_1stWon"] / row["player_A_1stIn"])
-        player_b_profile.p_1st_won.append(row["player_B_1stWon"] / row["player_B_1stIn"])
-        if (row["player_A_svpt"] - row["player_A_1stIn"]) > 0:
-            player_a_profile.p_2nd_won.append(row["player_A_2ndWon"] / (row["player_A_svpt"] - row["player_A_1stIn"]))
-        if (row["player_B_svpt"] - row["player_B_1stIn"]) > 0:
-            player_b_profile.p_2nd_won.append(row["player_B_2ndWon"] / (row["player_B_svpt"] - row["player_B_1stIn"]))
-        if row["player_A_bpFaced"] > 0:
-            player_a_profile.p_bp_saved.append(row["player_A_bpSaved"] / row["player_A_bpFaced"])
-        if row["player_B_bpFaced"] > 0:
-            player_b_profile.p_bp_saved.append(row["player_B_bpSaved"] / row["player_B_bpFaced"])
-        player_a_profile.p_rp_won.append(
-            (row["player_B_svpt"] - row["player_B_1stWon"] - row["player_B_2ndWon"]) / row["player_B_svpt"]
-        )
-        player_b_profile.p_rp_won.append(
-            (row["player_A_svpt"] - row["player_A_1stWon"] - row["player_A_2ndWon"]) / row["player_A_svpt"]
-        )
-        if row["player_B_bpFaced"] > 0:
-            player_a_profile.p_bp_won.append(
-                (row["player_B_bpFaced"] - row["player_B_bpSaved"]) / row["player_B_bpFaced"]
-            )
-        if row["player_A_bpFaced"] > 0:
-            player_b_profile.p_bp_won.append(
-                (row["player_A_bpFaced"] - row["player_A_bpSaved"]) / row["player_A_bpFaced"]
-            )
 
     return (dfc.assign(**features), player_profiles)
 
