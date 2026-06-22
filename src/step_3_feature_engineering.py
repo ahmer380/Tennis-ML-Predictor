@@ -9,9 +9,10 @@ elo_engine = EloRatingEngine()
 
 
 def engineer_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, PlayerProfile]]:
-    """Chronological pass that produces pre-match features using only past information."""
-    dfc = df.copy()
+    """Chronological pass that produces pre-match features and updates player profiles using only past information."""
+    print("\nEngineering features...")
 
+    dfc = df.copy()
     # Sort matches chronologically (oldest to newest) to prevent future data leakage in feature engineering
     dfc = dfc.sort_values(by=["tourney_date", "match_num"], kind="mergesort").reset_index(drop=True)
 
