@@ -8,12 +8,9 @@ from src.data.download_dataset import download_dataset
 from src.data.load_dataset import load_dataset
 from src.data.preprocess_dataset import preprocess_dataset
 
+from src.feature.feature_engineering import FeatureEngineer, get_player_profile_by_name
 from src.feature.prepare_ml_dataset import prepare_ml_dataset
 
-from src.step_3_feature_engineering import (
-    engineer_features,
-    get_player_profile_by_name,
-)
 from src.step_5_evaluate_model import evaluate_model, predict_match
 
 
@@ -26,10 +23,11 @@ def train(model_type: str):
     df_preprocessed = preprocess_dataset(df)
 
     # Engineer features and prepare the dataset for machine learning
-    df_features, player_profiles = engineer_features(df_preprocessed)
+    feature_engineer = FeatureEngineer()
+    df_features = feature_engineer.engineer_dataframe(df_preprocessed)
+    player_profiles = feature_engineer.player_profiles
     X_train, y_train, X_validation, y_validation, X_test, y_test = prepare_ml_dataset(df_features)
 
-    print("\nTraining model...\n")
     if model_type == "elo":
         model = TennisPredictorElo()
     elif model_type == "mlp":

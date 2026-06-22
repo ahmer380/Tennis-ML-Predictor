@@ -2,7 +2,7 @@ from src.data.download_dataset import download_dataset
 from src.data.load_dataset import load_dataset
 from src.data.preprocess_dataset import preprocess_dataset
 
-from src.step_3_feature_engineering import engineer_features
+from src.feature.feature_engineering import FeatureEngineer
 
 from src.utils.audit import (
     audit_dataset,
@@ -21,7 +21,10 @@ def audit_features():
     download_dataset()
     df = load_dataset()
     df_preprocessed = preprocess_dataset(df)
-    df_features, player_profiles = engineer_features(df_preprocessed)
+
+    feature_engineer = FeatureEngineer()
+    df_features = feature_engineer.engineer_dataframe(df_preprocessed)
+    player_profiles = feature_engineer.player_profiles
 
     audit_dataset(df_features)
     audit_player_profiles(player_profiles)

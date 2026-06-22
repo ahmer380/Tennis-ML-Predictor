@@ -15,11 +15,10 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from src.models.model import TennisPredictorModel
-
+from src.feature.player_profile import PlayerProfile
 from src.feature.features import FINALISED_ML_FEATURES
 
-from src.step_3_feature_engineering import PlayerProfile
+from src.models.model import TennisPredictorModel
 
 
 def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray) -> None:
