@@ -66,7 +66,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 3: Train a model
+## Executable pipelines
+
+### Train a model
 
 Training is implemented in `src/pipelines/train.py`.
 
@@ -76,6 +78,24 @@ python -m src.pipelines.train
 
 Supported executable parameters:
 - `--model`: The type of model to train tennis data on, including `elo`, `mlp`, and `xgboost` (default).
+
+### Predict a match
+
+Prediction is implemented in `src/pipelines/predict.py`
+
+```bash
+python -m src.pipelines.predict --player_a_name "Jannik Sinner" --player_b_name "Carlos Alcaraz"
+```
+
+Supported executable parameters:
+- `--player_a_name`: Name of the first player.
+- `--player_b_name`: Name of the second player.
+- `--surface`: The surface of the court, including `Hard` (default), `Clay`, and `Grass`.
+- `--best_of`: The best-of value for the match, including 3 (default) and 5.
+- `--model`: The model type to use for prediction, including `elo`, `mlp`, and `xgboost` (default).
+- `--player_a_year`: The end year of the first player to consider (default = current year).
+- `--player_b_year`: The end year of the second player to consider (default = current year).
+
 
 ## Models
 

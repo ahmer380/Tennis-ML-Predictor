@@ -242,12 +242,3 @@ class FeatureEngineer:
         features["best_of_5"] = 1 if row["best_of"] == 5 else 0
 
         return features
-
-
-def get_player_profile_by_name(player_profiles: Dict[int, PlayerProfile], player_name: str) -> PlayerProfile:
-    """Retrieve a PlayerProfile object by player name."""
-    for profile in player_profiles.values():
-        if profile.name == player_name:
-            return profile
-
-    raise ValueError(f"Player '{player_name}' not found in player profiles.")
