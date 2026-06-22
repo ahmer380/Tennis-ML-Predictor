@@ -1,14 +1,15 @@
+import requests
 from datetime import date
 from pathlib import Path
 
-import pandas as pd
-import requests
-
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 BASE_URL = "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master"
 
 
 def download_dataset(year_count: int = 20) -> None:
+    """Downloads the Jeff Sackmann ATP matches dataset for the specified number of years."""
+    print("\nDownloading dataset...")
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -31,10 +32,3 @@ def download_dataset(year_count: int = 20) -> None:
         print("Jeff Sackmann ATP matches dataset downloaded successfully!")
     except Exception as e:
         print(f"Error downloading Jeff Sackmann ATP matches dataset: {e}")
-
-
-def load_dataset(year_count: int = 20) -> pd.DataFrame:
-    most_recent_years = sorted(sorted(DATA_DIR.glob("atp_matches_*.csv"), reverse=True)[:year_count])
-    dfs = [pd.read_csv(filepath) for filepath in most_recent_years]
-
-    return pd.concat(dfs, ignore_index=True)

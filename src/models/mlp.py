@@ -68,7 +68,7 @@ class TennisPredictorMLP(TennisPredictorModel):
             not self._is_fitted
         ), f"{self.instance_name} has already been trained. Create a new instance to train again."
 
-        print(f"Training {self.instance_name}...\n")
+        print(f"\nTraining {self.instance_name}...")
 
         # Convert training and validation data to normalised PyTorch tensors and create DataLoaders
         X_tensor = torch.tensor(self._scaler.fit_transform(X_train), dtype=torch.float32)

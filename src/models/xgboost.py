@@ -30,7 +30,7 @@ class TennisPredictorXGBoost(TennisPredictorModel):
             not self._is_fitted
         ), f"{self.instance_name} has already been trained. Create a new instance to train again."
 
-        print(f"Training {self.MODEL_NAME}...\n")
+        print(f"\nTraining {self.MODEL_NAME}...")
 
         # Configure XGBoost Classifier
         self._xgbclassifier = XGBClassifier(
@@ -61,7 +61,7 @@ class TennisPredictorXGBoost(TennisPredictorModel):
         val_acc = accuracy_score(y_val_np, val_class_predictions)
         val_brier = brier_score_loss(y_val_np, val_probabilities)
 
-        print("\n--- Training Complete ---")
+        print("--- Training Complete ---")
         print(f"Best Iteration: {self._xgbclassifier.best_iteration}")
         print(
             f"Validation Log Loss: {val_log_loss:.4f} | Validation Accuracy: {val_acc * 100:.2f}% | Validation Brier Score: {val_brier:.4f}"

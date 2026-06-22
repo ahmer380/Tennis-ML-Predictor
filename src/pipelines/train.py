@@ -1,49 +1,34 @@
 import argparse
 
+from src.data.download_dataset import download_dataset
+from src.data.load_dataset import load_dataset
+from src.data.preprocess_dataset import preprocess_dataset
+
+from src.feature.feature_engineering import FeatureEngineer, get_player_profile_by_name
+from src.feature.prepare_ml_dataset import prepare_ml_dataset
+
 from src.models.elo import TennisPredictorElo
 from src.models.mlp import TennisPredictorMLP
 from src.models.xgboost import TennisPredictorXGBoost
 
-from src.step_1_load_dataset import download_dataset, load_dataset
-from src.step_2_preprocess_data import preprocess_matches, audit_dataset
-from src.step_3_feature_engineering import (
-    engineer_features,
-    get_player_profile_by_name,
-    audit_player_profiles,
-    audit_player_h2h,
-    audit_match,
-    audit_player_tournament_run,
-    plot_player_career_elo_trajectory,
-)
-from src.step_4_split_dataset import split_dataset
-from src.step_5_evaluate_model import evaluate_model, predict_match
+from src.evaluate.evaluate_model import evaluate_model, predict_match
 
 
 def train(model_type: str):
-    print("Downloading dataset...\n")
+    """Pipeline to train a tennis match predictor model."""
+
+    # Download, load, and preprocess the dataset
     download_dataset()
     df = load_dataset()
+    df_preprocessed = preprocess_dataset(df)
 
-    print("\nPreprocessing dataset...\n")
-    df_preprocessed = preprocess_matches(df)
-    # audit_dataset(df_preprocessed)
+    # Engineer features and prepare the dataset for machine learning
+    feature_engineer = FeatureEngineer()
+    df_features = feature_engineer.engineer_dataframe(df_preprocessed)
+    player_profiles = feature_engineer.player_profiles
+    X_train, y_train, X_validation, y_validation, X_test, y_test = prepare_ml_dataset(df_features)
 
-    print("\nEngineering features...\n")
-    df_features, player_profiles = engineer_features(df_preprocessed)
-    # audit_dataset(df_features)
-    # audit_player_profiles(player_profiles)
-    # audit_player_h2h(df_features, "Novak Djokovic", "Carlos Alcaraz")
-    # audit_match(df_features, "Novak Djokovic", "Rafael Nadal", "Rome Masters", 2011)
-    # audit_player_tournament_run(df_features, "Rafael Nadal", "US Open", 2019)
-    # plot_player_career_elo_trajectory(df_features, "Rafael Nadal")
-
-    print("\nSplitting dataset...\n")
-    X_train, y_train, X_validation, y_validation, X_test, y_test = split_dataset(df_features)
-    # audit_dataset(X_train.assign(player_A_win=y_train))
-    # audit_dataset(X_validation.assign(player_A_win=y_validation))
-    # audit_dataset(X_test.assign(player_A_win=y_test))
-
-    print("\nTraining model...\n")
+    # Train the model based on the specified model type
     if model_type == "elo":
         model = TennisPredictorElo()
     elif model_type == "mlp":
@@ -53,8 +38,9 @@ def train(model_type: str):
     model.learn(X_train, y_train, X_validation, y_validation)
     model.save()
 
-    print("\nEvaluating model...\n")
+    # Evaluate the model on the test set and save evaluation metrics and plots
     evaluate_model(model, X_test, y_test, save_data=True)
+
     predict_match(
         model=model,
         player_a_profile=get_player_profile_by_name(player_profiles, "Novak Djokovic"),
