@@ -21,7 +21,43 @@ from src.feature.features import FINALISED_ML_FEATURES
 from src.models.model import TennisPredictorModel
 
 
-def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray) -> None:
+def evaluate_model(
+    model: TennisPredictorModel,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    save_data: bool = True,
+) -> None:
+    """Evaluate the model on the test set and print/save evaluation metrics and plots."""
+    print(f"\nEvaluating {model.instance_name}...")
+
+    y_prob = model.predict(X_test)
+    y_pred = model.predict_class(X_test)
+
+    if save_data:
+        _plot_confusion_matrix(model, y_test, y_pred)
+        _plot_prediction_histogram(model, y_prob)
+        _save_evaluation_metrics(model, y_test, y_pred, y_prob)
+
+    print(f"Log Loss:      {_format_metric(log_loss(y_test, y_prob))}")
+    print(f"Brier Score:   {_format_metric(brier_score_loss(y_test, y_prob))}")
+    print(f"ROC AUC:       {_format_metric(roc_auc_score(y_test, y_prob))}")
+    print()
+    print(f"Accuracy:      {_format_metric(accuracy_score(y_test, y_pred))}")
+    print(f"Precision:     {_format_metric(precision_score(y_test, y_pred, zero_division=0))}")
+    print(f"Recall:        {_format_metric(recall_score(y_test, y_pred, zero_division=0))}")
+    print(f"F1 Score:      {_format_metric(f1_score(y_test, y_pred, zero_division=0))}")
+    print()
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred, labels=[0, 1]))
+    if save_data:
+        print("Evaluation plots saved to:")
+        print(f"{model.instance_dir}/confusion_matrix.png")
+        print(f"{model.instance_dir}/prediction_histogram.png")
+        print(f"{model.instance_dir}/evaluation_metrics.txt")
+    print()
+
+
+def _plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray) -> None:
     confusion = confusion_matrix(y_true, y_pred, labels=[0, 1])
     confusion_display = ConfusionMatrixDisplay(confusion_matrix=confusion, display_labels=["Player 0", "Player 1"])
 
@@ -33,7 +69,7 @@ def plot_confusion_matrix(model: TennisPredictorModel, y_true: pd.Series, y_pred
     plt.close(fig)
 
 
-def plot_prediction_histogram(model: TennisPredictorModel, y_prob: np.ndarray) -> None:
+def _plot_prediction_histogram(model: TennisPredictorModel, y_prob: np.ndarray) -> None:
     fig, ax = plt.subplots(figsize=(5, 4))
     ax.hist(y_prob, bins=20, range=(0.0, 1.0), color="#4C72B0", edgecolor="white")
     ax.set_xlim([0.0, 1.0])
@@ -45,7 +81,7 @@ def plot_prediction_histogram(model: TennisPredictorModel, y_prob: np.ndarray) -
     plt.close(fig)
 
 
-def save_evaluation_metrics(
+def _save_evaluation_metrics(
     model: TennisPredictorModel, y_true: pd.Series, y_pred: np.ndarray, y_prob: np.ndarray
 ) -> None:
     metrics = {
@@ -61,54 +97,15 @@ def save_evaluation_metrics(
     with open(model.instance_dir / "evaluation_metrics.txt", "w") as f:
         f.write(f"Evaluation Metrics for {model.instance_name}\n\n")
         for metric_name, metric_value in metrics.items():
-            f.write(f"{metric_name}: {format_metric(metric_value)}\n")
+            f.write(f"{metric_name}: {_format_metric(metric_value)}\n")
 
 
-def format_metric(value: Any) -> str:
+def _format_metric(value: Any) -> str:
     if isinstance(value, float) and np.isnan(value):
         return "N/A"
     if isinstance(value, (float, np.floating)):
         return f"{float(value):.3f}"
     return str(value)
-
-
-def evaluate_model(
-    model: TennisPredictorModel,
-    X_test: pd.DataFrame,
-    y_test: pd.Series,
-    save_data: bool = True,
-) -> None:
-    y_prob = model.predict(X_test)
-    y_pred = model.predict_class(X_test)
-
-    if save_data:
-        plot_confusion_matrix(model, y_test, y_pred)
-        plot_prediction_histogram(model, y_prob)
-        save_evaluation_metrics(model, y_test, y_pred, y_prob)
-
-    print("=" * 50)
-    print("MODEL EVALUATION")
-    print("=" * 50)
-    print(f"Model:         {model.instance_name}")
-    print()
-    print(f"Log Loss:      {format_metric(log_loss(y_test, y_prob))}")
-    print(f"Brier Score:   {format_metric(brier_score_loss(y_test, y_prob))}")
-    print(f"ROC AUC:       {format_metric(roc_auc_score(y_test, y_prob))}")
-    print()
-    print(f"Accuracy:      {format_metric(accuracy_score(y_test, y_pred))}")
-    print(f"Precision:     {format_metric(precision_score(y_test, y_pred, zero_division=0))}")
-    print(f"Recall:        {format_metric(recall_score(y_test, y_pred, zero_division=0))}")
-    print(f"F1 Score:      {format_metric(f1_score(y_test, y_pred, zero_division=0))}")
-    print()
-    print("Confusion Matrix:")
-    print(confusion_matrix(y_test, y_pred, labels=[0, 1]))
-    if save_data:
-        print("Evaluation plots saved to:")
-        print(f"{model.instance_dir}/confusion_matrix.png")
-        print(f"{model.instance_dir}/prediction_histogram.png")
-        print(f"{model.instance_dir}/evaluation_metrics.txt")
-    print()
-    print("=" * 50)
 
 
 def predict_match(
