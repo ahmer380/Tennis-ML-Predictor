@@ -7,7 +7,11 @@ from src.pipelines.predict import predict
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
 
-@router.post("", response_model=PredictionResponse)
+@router.post(
+    "",
+    summary="Predict the outcome of a match between two players",
+    response_model=PredictionResponse,
+)
 def predict_match(request: PredictionRequest):
     player_a, player_b, player_a_win_probability = predict(
         model_type=request.model,
