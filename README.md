@@ -66,7 +66,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 3: Train a model
+## Executable pipelines
+
+### Train a model
 
 Training is implemented in `src/pipelines/train.py`.
 
@@ -76,6 +78,24 @@ python -m src.pipelines.train
 
 Supported executable parameters:
 - `--model`: The type of model to train tennis data on, including `elo`, `mlp`, and `xgboost` (default).
+
+### Predict a match
+
+Prediction is implemented in `src/pipelines/predict.py`
+
+```bash
+python -m src.pipelines.predict --player_a_name "Jannik Sinner" --player_b_name "Carlos Alcaraz"
+```
+
+Supported executable parameters:
+- `--player_a_name`: Full name of player A.
+- `--player_b_name`: Full name of player B.
+- `--surface`: Surface of the court, including `Hard` (default), `Clay`, and `Grass`.
+- `--best_of`: Best-of value for the match, including 3 (default) and 5.
+- `--model`: Model type to use for prediction, including `elo`, `mlp`, and `xgboost` (default).
+- `--player_a_year`: (end of) Cutoff year for Player A's stats (default = current year).
+- `--player_b_year`: (end of) Cutoff year for Player B's stats (default = current year).
+
 
 ## Models
 
@@ -140,6 +160,3 @@ Many thanks to **Jeff Sackmann** and the wider **Tennis Abstract** community for
 
 - [Jeff Sackmann’s ATP dataset](https://github.com/JeffSackmann/tennis_atp)
 - https://www.tennisabstract.com/
-
-## Tennis ML Predictor API
-Coming soon!
