@@ -1,4 +1,5 @@
 import argparse
+from typing import Tuple
 
 import pandas as pd
 
@@ -24,7 +25,7 @@ def predict(
     best_of: int,
     player_a_year: int = pd.Timestamp.now().year,
     player_b_year: int = pd.Timestamp.now().year,
-) -> float:
+) -> Tuple[PlayerProfile, PlayerProfile, float]:
     """Pipeline to predict the win probability of Player A winning against Player B using the specified model type."""
 
     player_a_profile = build_player_profile(player_a_name, player_a_year)
@@ -42,7 +43,7 @@ def predict(
         + (1 - _predict_direction(model, player_b_profile, player_a_profile, surface, best_of))
     ) / 2  # Average the predictions across both directions (A vs B and B vs A) to account for potential asymmetry in the model
 
-    return player_a_win_probability
+    return player_a_profile, player_b_profile, player_a_win_probability
 
 
 def build_player_profile(player_name: str, player_year: int) -> PlayerProfile:
@@ -241,7 +242,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    player_a_win_probability = predict(
+    player_a_profile, player_b_profile, player_a_win_probability = predict(
         model_type=args.model,
         player_a_name=args.player_a_name,
         player_b_name=args.player_b_name,
@@ -253,7 +254,7 @@ if __name__ == "__main__":
 
     print("=" * 50)
     print(f"Win probability according to {args.model}:")
-    print(f"{args.player_a_name}: {player_a_win_probability:.2%}")
-    print(f"{args.player_b_name}: {1 - player_a_win_probability:.2%}")
+    print(f"{player_a_profile.name}: {player_a_win_probability:.2%}")
+    print(f"{player_b_profile.name}: {1 - player_a_win_probability:.2%}")
     print("=" * 50)
     print()

@@ -5,3 +5,6 @@ torch
 xgboost
 scikit-learn
 matplotlib
+fastapi
+pydantic
+uvicorn

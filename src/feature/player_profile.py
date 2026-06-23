@@ -52,6 +52,20 @@ class PlayerProfile:
     # Experience, form, and game stats
     match_history: Dict[str, List[_Match]] = field(default_factory=lambda: defaultdict(list))
 
+    def to_dict(self) -> Dict:
+        """Convert the PlayerProfile to a lightweight dictionary representation."""
+        return {
+            "name": self.name,
+            "rank": self.rank,
+            "rank_points": self.rank_points,
+            "age": round(self.age),
+            "height": self.ht,
+            "global_elo": round(self.elos["global"], 2),
+            "hard_elo": round(self.elos["Hard"], 2),
+            "clay_elo": round(self.elos["Clay"], 2),
+            "grass_elo": round(self.elos["Grass"], 2),
+        }
+
     def get_matches_played(self, surface: str = "global", from_date: pd.Timestamp = None) -> int:
         """Return the number of matches played on a given surface from a specific date."""
         if not from_date:
