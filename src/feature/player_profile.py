@@ -58,7 +58,7 @@ class PlayerProfile:
             "name": self.name,
             "rank": self.rank,
             "rank_points": self.rank_points,
-            "age": round(self.age),
+            "age": int(self.age),
             "height": self.ht,
             "global_elo": round(self.elos["global"], 2),
             "hard_elo": round(self.elos["Hard"], 2),

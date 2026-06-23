@@ -199,46 +199,46 @@ if __name__ == "__main__":
         "--player_a_name",
         type=str,
         required=True,
-        help="Name of the first player",
+        help="Full name of player A",
     )
     parser.add_argument(
         "--player_b_name",
         type=str,
         required=True,
-        help="Name of the second player",
+        help="Full name of player B",
     )
     parser.add_argument(
         "--surface",
         type=str,
         default="Hard",
         choices=["Hard", "Clay", "Grass"],
-        help="The surface of the court",
+        help="Surface of the court",
     )
     parser.add_argument(
         "--best_of",
         type=int,
         default=3,
         choices=[3, 5],
-        help="The best-of value for the match",
+        help="Best-of value for the match",
     )
     parser.add_argument(
         "--model",
         type=str,
         default="xgboost",
         choices=["elo", "mlp", "xgboost"],
-        help="The model type to use for prediction",
+        help="Model type to use for prediction",
     )
     parser.add_argument(
         "--player_a_year",
         type=int,
         default=pd.Timestamp.now().year,
-        help="The end year of the first player to consider",
+        help="(end of) Cutoff year for Player A's stats",
     )
     parser.add_argument(
         "--player_b_year",
         type=int,
         default=pd.Timestamp.now().year,
-        help="The end year of the second player to consider",
+        help="(end of) Cutoff year for Player B's stats",
     )
     args = parser.parse_args()
 

@@ -1,33 +1,22 @@
-from datetime import datetime
 from fastapi import APIRouter
 
-from src.pipelines.predict import predict
-
-from fastapi import APIRouter
+from api.schemas import PredictionRequest, PredictionResponse
 
 from src.pipelines.predict import predict
 
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
 
-@router.get("")
-def predict_match(
-    player_a_name: str,
-    player_b_name: str,
-    surface: str = "Hard",
-    best_of: int = 3,
-    model: str = "xgboost",
-    player_a_year: int = datetime.now().year,
-    player_b_year: int = datetime.now().year,
-):
+@router.post("", response_model=PredictionResponse)
+def predict_match(request: PredictionRequest):
     player_a, player_b, player_a_win_probability = predict(
-        model_type=model,
-        player_a_name=player_a_name,
-        player_b_name=player_b_name,
-        surface=surface,
-        best_of=best_of,
-        player_a_year=player_a_year,
-        player_b_year=player_b_year,
+        model_type=request.model,
+        player_a_name=request.player_a_name,
+        player_b_name=request.player_b_name,
+        surface=request.surface,
+        best_of=request.best_of,
+        player_a_year=request.player_a_year,
+        player_b_year=request.player_b_year,
     )
 
     return {

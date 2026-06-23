@@ -88,13 +88,13 @@ python -m src.pipelines.predict --player_a_name "Jannik Sinner" --player_b_name 
 ```
 
 Supported executable parameters:
-- `--player_a_name`: Name of the first player.
-- `--player_b_name`: Name of the second player.
-- `--surface`: The surface of the court, including `Hard` (default), `Clay`, and `Grass`.
-- `--best_of`: The best-of value for the match, including 3 (default) and 5.
-- `--model`: The model type to use for prediction, including `elo`, `mlp`, and `xgboost` (default).
-- `--player_a_year`: The end year of the first player to consider (default = current year).
-- `--player_b_year`: The end year of the second player to consider (default = current year).
+- `--player_a_name`: Full name of player A.
+- `--player_b_name`: Full name of player B.
+- `--surface`: Surface of the court, including `Hard` (default), `Clay`, and `Grass`.
+- `--best_of`: Best-of value for the match, including 3 (default) and 5.
+- `--model`: Model type to use for prediction, including `elo`, `mlp`, and `xgboost` (default).
+- `--player_a_year`: (end of) Cutoff year for Player A's stats (default = current year).
+- `--player_b_year`: (end of) Cutoff year for Player B's stats (default = current year).
 
 
 ## Models
@@ -160,6 +160,3 @@ Many thanks to **Jeff Sackmann** and the wider **Tennis Abstract** community for
 
 - [Jeff Sackmann’s ATP dataset](https://github.com/JeffSackmann/tennis_atp)
 - https://www.tennisabstract.com/
-
-## Tennis ML Predictor API
-Coming soon!
