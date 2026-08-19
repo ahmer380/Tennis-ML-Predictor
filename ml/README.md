@@ -1,4 +1,4 @@
-# Tennis ML Predictor
+# Tennis ML Predictor Model
 
 This **Tennis ML Predictor** is a machine learning system designed to predict the outcome of professional tennis matches using historical match data, player performance statistics, and engineered contextual features such as Elo ratings, surface-specific strength, and recent form.
 
@@ -6,7 +6,7 @@ The project explores multiple modelling approaches, from a classical Elo rating 
 
 The primary goal is to build an accurate, interpretable, and extensible prediction pipeline that can evolve with additional data and feature engineering improvements.
 
-## This repository includes
+## This sub-repository includes
 The full end-to-end tennis prediction pipeline:
 
 - **Live data fetching, preprocessing & cleaning**
@@ -22,7 +22,7 @@ The full end-to-end tennis prediction pipeline:
   - Serve / return performance indicators
 
 - **Model training pipeline**
-  - Unified training entry point (`ml/src/pipelines/train.py`)
+  - Unified training entry point (`src/pipelines/train.py`)
   - Configurable model selection (`elo`, `mlp`, `xgboost`)
   - Reproducible train/test pipeline
 
@@ -48,7 +48,6 @@ pip --version
 Windows PowerShell:
 
 ```powershell
-cd ml
 python -m venv .venv
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 .\.venv\Scripts\Activate.ps1
@@ -57,7 +56,6 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 macOS/Linux:
 
 ```bash
-cd ml
 python -m venv .venv
 source .venv/bin/activate
 ```
@@ -72,7 +70,7 @@ pip install -r requirements.txt
 
 ### Train a model
 
-Training is implemented in `ml/src/pipelines/train.py`.
+Training is implemented in `src/pipelines/train.py`.
 
 ```bash
 python -m src.pipelines.train
@@ -83,7 +81,7 @@ Supported executable parameters:
 
 ### Predict a match
 
-Prediction is implemented in `ml/src/pipelines/predict.py`
+Prediction is implemented in `src/pipelines/predict.py`
 
 ```bash
 python -m src.pipelines.predict --player_a_name "Jannik Sinner" --player_b_name "Carlos Alcaraz"
@@ -127,7 +125,7 @@ $$
 
 This model provides a strong baseline and forms the foundation for more complex feature engineering.
 
-![Career Elo Trajectory of Rafael Nadal](ml/artifacts/nadal_career_elo_trajectory.png)
+![Career Elo Trajectory of Rafael Nadal](artifacts/nadal_career_elo_trajectory.png)
 *Career Elo trajectory of Rafael Nadal over his professional career, showing long-term performance evolution and surface dominance.*
 
 ### TennisPredictorMLP
@@ -153,7 +151,7 @@ This is currently my **preferred model** for this project due to its:
 
 One of its biggest advantages is interpretability: we can directly evaluate which features contribute most to predictive power.
 
-![Top 10 Feature Importance](ml/artifacts/tennis_predictor_xgboost/v1/top_10_feature_importance.png)
+![Top 10 Feature Importance](artifacts/tennis_predictor_xgboost/v1/top_10_feature_importance.png)
 *Top 10 feature importances from the trained XGBoost model, showing the most influential variables used in match outcome prediction.*
 
 ## Acknowledgements
