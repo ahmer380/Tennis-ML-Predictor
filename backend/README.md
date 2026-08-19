@@ -41,7 +41,7 @@ pip install -r requirements.txt
 ## Step 3: Start the FastAPI server
 
 ```bash
-python -m uvicorn api.main:app --reload
+python -m uvicorn backend.main:app --reload
 ```
 
 ## API Documentation

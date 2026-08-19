@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
-from api.schemas import PredictionRequest, PredictionResponse
+from backend.schemas import PredictionRequest, PredictionResponse
 
-from src.pipelines.predict import predict
+from ml.src.pipelines.predict import predict
 
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 

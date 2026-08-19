@@ -3,7 +3,7 @@ from typing import Dict
 import pandas as pd
 from tabulate import tabulate
 
-from src.feature.player_profile import PlayerProfile
+from ml.src.feature.player_profile import PlayerProfile
 
 
 def audit_dataset(df: pd.DataFrame) -> None:

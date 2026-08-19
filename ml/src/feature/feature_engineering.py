@@ -2,8 +2,8 @@ from typing import Dict
 
 import pandas as pd
 
-from src.feature.elo_rating_engine import EloRatingEngine
-from src.feature.player_profile import PlayerProfile
+from ml.src.feature.elo_rating_engine import EloRatingEngine
+from ml.src.feature.player_profile import PlayerProfile
 
 
 class FeatureEngineer:

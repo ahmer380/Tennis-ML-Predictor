@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, brier_score_loss
 import joblib
 
-from src.models.model import TennisPredictorModel
+from ml.src.models.model import TennisPredictorModel
 
 BATCH_SIZE = 256
 LEARNING_RATE = 3e-4

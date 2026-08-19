@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
-from api.schemas import PlayerProfileRequest, PlayerProfileResponse
+from backend.schemas import PlayerProfileRequest, PlayerProfileResponse
 
-from src.pipelines.predict import build_player_profile
+from ml.src.pipelines.predict import build_player_profile
 
 router = APIRouter(prefix="/profile", tags=["Player Profile"])
 

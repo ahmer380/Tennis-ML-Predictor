@@ -2,7 +2,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from src.feature.features import FINALISED_ML_FEATURES
+from ml.src.feature.features import FINALISED_ML_FEATURES
 
 
 def prepare_ml_dataset(

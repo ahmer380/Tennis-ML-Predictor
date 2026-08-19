@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, log_loss, brier_score_loss
 
-from src.models.model import TennisPredictorModel
+from ml.src.models.model import TennisPredictorModel
 
 
 class TennisPredictorXGBoost(TennisPredictorModel):

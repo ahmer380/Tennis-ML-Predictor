@@ -1,17 +1,17 @@
 import argparse
 
-from src.data.download_dataset import download_dataset
-from src.data.load_dataset import load_dataset
-from src.data.preprocess_dataset import preprocess_dataset
+from ml.src.data.download_dataset import download_dataset
+from ml.src.data.load_dataset import load_dataset
+from ml.src.data.preprocess_dataset import preprocess_dataset
 
-from src.feature.feature_engineering import FeatureEngineer
-from src.feature.prepare_ml_dataset import prepare_ml_dataset
+from ml.src.feature.feature_engineering import FeatureEngineer
+from ml.src.feature.prepare_ml_dataset import prepare_ml_dataset
 
-from src.models.elo import TennisPredictorElo
-from src.models.mlp import TennisPredictorMLP
-from src.models.xgboost import TennisPredictorXGBoost
+from ml.src.models.elo import TennisPredictorElo
+from ml.src.models.mlp import TennisPredictorMLP
+from ml.src.models.xgboost import TennisPredictorXGBoost
 
-from src.evaluate.evaluate_model import evaluate_model
+from ml.src.evaluate.evaluate_model import evaluate_model
 
 
 def train(model_type: str):

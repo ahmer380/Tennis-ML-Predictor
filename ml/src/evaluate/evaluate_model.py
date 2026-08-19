@@ -15,7 +15,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from src.models.model import TennisPredictorModel
+from ml.src.models.model import TennisPredictorModel
 
 
 def evaluate_model(

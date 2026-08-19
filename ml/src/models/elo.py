@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 import pandas as pd
 
-from src.models.model import TennisPredictorModel
+from ml.src.models.model import TennisPredictorModel
 
 
 class TennisPredictorElo(TennisPredictorModel):
