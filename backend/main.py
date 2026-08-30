@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from backend.routers.prediction import router as prediction_router
 from backend.routers.profile import router as profile_router
+from backend.routers.player_list import router as player_list_router
 
 app = FastAPI(
     title="Tennis Predictor API",
@@ -11,6 +12,7 @@ app = FastAPI(
 
 app.include_router(prediction_router)
 app.include_router(profile_router)
+app.include_router(player_list_router)
 
 
 @app.exception_handler(Exception)
