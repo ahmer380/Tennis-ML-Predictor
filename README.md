@@ -158,7 +158,7 @@ One of its biggest advantages is interpretability: we can directly evaluate whic
 
 ## Acknowledgements
 
-Many thanks to **Jeff Sackmann** and the wider **Tennis Abstract** community for their ongoing efforts in providing and maintaining publicly available tennis datasets.
+Many thanks to **Jeff Sackmann** and the wider **Tennis Abstract** community for their ongoing efforts in providing and maintaining publicly available tennis datasets. Thank you very much for reading this!
 
 - [Jeff Sackmann’s ATP dataset](https://github.com/JeffSackmann/tennis_atp)
 - https://www.tennisabstract.com/
